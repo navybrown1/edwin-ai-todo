@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
-import { getGeminiModel } from "@/lib/gemini";
-import type { Task } from "@/types";
+import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from "@/lib/ai-config";
+import { generateGeminiText } from "@/lib/gemini";
+import type { GeminiModelId, Task } from "@/types";
 
 export async function POST(req: Request) {
   try {
-    const { tasks }: { tasks: Task[] } = await req.json();
+    const {
+      tasks,
+      memory,
+      primaryModel,
+    }: {
+      tasks: Task[];
+      memory?: string;
+      primaryModel?: GeminiModelId;
+    } = await req.json();
+
     if (!tasks?.length) {
       return NextResponse.json({ briefing: "No tasks yet — add some to get your daily brief!" });
     }
@@ -16,11 +26,13 @@ export async function POST(req: Request) {
       .map(t => `- [${t.cat}] ${t.text}`)
       .join("\n");
 
-    const model = getGeminiModel();
     const prompt = `You are Edwin's personal AI assistant. Generate a concise, motivational daily action brief.
 
 Edwin's pending tasks (${pending.length} remaining, ${done.length} completed):
 ${taskList}
+
+Persistent workspace memory:
+${memory?.trim() ? memory.trim() : "No extra memory saved."}
 
 Write a focused daily brief for Edwin. Structure it with:
 1. **Today's Top 3 Priorities** — pick the 3 most urgent/high-impact tasks and explain why
@@ -30,10 +42,15 @@ Write a focused daily brief for Edwin. Structure it with:
 Keep the total response under 200 words. Be direct, not generic. Use Edwin's actual task names.
 Format with **bold headers** and bullet points. No emojis except where already in category names.`;
 
-    const result = await model.generateContent(prompt);
-    const briefing = result.response.text().trim();
+    const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
+      ? (primaryModel as GeminiModelId)
+      : DEFAULT_GEMINI_MODEL;
 
-    return NextResponse.json({ briefing });
+    const { text: briefing, meta } = await generateGeminiText(prompt, {
+      primaryModel: preferredModel,
+    });
+
+    return NextResponse.json({ briefing, meta });
   } catch (err) {
     console.error("AI briefing error:", err);
     return NextResponse.json({ error: "Failed to generate briefing" }, { status: 500 });

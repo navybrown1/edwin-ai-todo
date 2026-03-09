@@ -24,9 +24,9 @@ export default function Toast({ message, show, type = "success" }: ToastProps) {
     },
     ai: {
       bg:     "rgba(16,14,8,0.95)",
-      border: "rgba(240,192,64,0.35)",
-      text:   "#f0c040",
-      glow:   "0 0 20px rgba(240,192,64,0.15)",
+      border: "rgba(var(--accent-rgb),0.35)",
+      text:   "rgb(var(--accent-rgb))",
+      glow:   "0 0 20px rgba(var(--accent-rgb),0.15)",
       icon:   "✦",
     },
   };

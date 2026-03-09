@@ -10,7 +10,7 @@ interface FilterTabsProps {
 export default function FilterTabs({ active, onChange }: FilterTabsProps) {
   const tabs: { value: Filter; label: string; dot?: string }[] = [
     { value: "all",    label: "All" },
-    { value: "active", label: "Active", dot: "#f0c040" },
+    { value: "active", label: "Active", dot: "rgb(var(--accent-rgb))" },
     { value: "done",   label: "Done",   dot: "#34d399" },
   ];
 

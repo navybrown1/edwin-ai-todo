@@ -33,9 +33,9 @@ export default function ProgressBar({ pct }: ProgressBarProps) {
           className="h-full rounded-full progress-fill"
           style={{
             width: `${pct}%`,
-            background: "linear-gradient(90deg, #c89a20, #f0c040, #e87040)",
+            background: "linear-gradient(90deg, rgb(var(--accent-deep-rgb)), rgb(var(--accent-rgb)), rgb(var(--accent2-rgb)))",
             transition: "width 0.7s cubic-bezier(0.34,1.3,0.64,1)",
-            boxShadow: pct > 0 ? "0 0 12px rgba(240,192,64,0.4)" : "none",
+            boxShadow: pct > 0 ? "0 0 12px rgba(var(--accent-rgb),0.4)" : "none",
           }}
         />
       </div>
@@ -46,7 +46,7 @@ export default function ProgressBar({ pct }: ProgressBarProps) {
           className="text-[13px] font-syne font-bold"
           style={{
             color: pct === 100 ? "#34d399" : "#f0c040",
-            textShadow: pct === 100 ? "0 0 12px rgba(52,211,153,0.5)" : "0 0 10px rgba(240,192,64,0.4)",
+            textShadow: pct === 100 ? "0 0 12px rgba(52,211,153,0.5)" : "0 0 10px rgba(var(--accent-rgb),0.4)",
           }}
         >
           {pct}%
