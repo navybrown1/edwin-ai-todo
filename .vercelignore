@@ -1,0 +1,8 @@
+.git
+.next
+.next-build
+.next-dev
+.next*.archived.*
+.playwright-cli
+node_modules
+coverage
