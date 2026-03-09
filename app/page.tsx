@@ -18,6 +18,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useSpaceSession } from "@/hooks/useSpaceSession";
 import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/hooks/useToast";
+import { useUiSounds } from "@/hooks/useUiSounds";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 type Filter = "all" | "active" | "done";
@@ -25,6 +26,7 @@ type Filter = "all" | "active" | "done";
 export default function Home() {
   const [filter, setFilter] = useState<Filter>("all");
   const reducedMotion = useReducedMotion();
+  useUiSounds();
   const { toast, showToast } = useToast();
   const { bootingSpace, getRecoveryLink, spaceKey, startFreshSpace } = useSpaceSession();
   const { themeMode, setThemeMode, primaryModel, setPrimaryModel } = useLocalPreferences();

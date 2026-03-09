@@ -1,5 +1,6 @@
 "use client";
 
+import ActivityHub from "@/components/ActivityHub";
 import { GEMINI_MODELS, THEME_OPTIONS } from "@/lib/ai-config";
 import type { CSSProperties } from "react";
 import type { GeminiModelId, ThemeMode } from "@/types";
@@ -150,22 +151,15 @@ export default function SpacePanel({
         </div>
 
         <div className="space-y-5">
-          <div className="mode-stage glass-subtle relative overflow-hidden rounded-[28px] p-5">
-            <div className="relative z-10 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-accent/75 font-dm">Mode</p>
-                <h3 className="mt-2 font-syne text-[1.7rem] font-bold text-textPrimary">{activeTheme.label}</h3>
-              </div>
-              <div className="mode-stage-figure">
-                <ModeIllustration id={themeMode} large />
-              </div>
-            </div>
-            <div className="mode-stage-backdrop mode-stage-backdrop-a" />
-            <div className="mode-stage-backdrop mode-stage-backdrop-b" />
-          </div>
+          <ActivityHub />
 
           <div>
-            <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Modes</p>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Modes</p>
+              <span className="rounded-full border border-accent/20 bg-surface/70 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-accent font-dm">
+                {activeTheme.label}
+              </span>
+            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {THEME_OPTIONS.map((theme) => (
                 <button

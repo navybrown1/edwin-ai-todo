@@ -19,6 +19,41 @@ function formatTime(totalSeconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function ControlIcon({ kind }: { kind: "play" | "pause" | "reset" | "skip" }) {
+  if (kind === "pause") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <rect x="4" y="3.5" width="3.2" height="11" rx="1.2" fill="currentColor" />
+        <rect x="10.8" y="3.5" width="3.2" height="11" rx="1.2" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (kind === "reset") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M4.5 9A4.5 4.5 0 1 0 6 5.66" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M4.5 3.75V6.8H7.55" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "skip") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M4 4.5L9.8 9L4 13.5V4.5Z" fill="currentColor" />
+        <path d="M10 4.5L15.8 9L10 13.5V4.5Z" fill="currentColor" opacity="0.72" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M5.25 4.2L13.8 9L5.25 13.8V4.2Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function FocusPanel({ spaceKey }: FocusPanelProps) {
   const {
     completedFocusRounds,
@@ -105,21 +140,27 @@ export default function FocusPanel({ spaceKey }: FocusPanelProps) {
               aria-label={isRunning ? "Pause timer" : "Start timer"}
               className="rounded-2xl bg-accent px-5 py-3 text-bg transition-all duration-200 hover:-translate-y-px hover:shadow-glow"
             >
-              <span className="font-syne text-lg font-bold">{isRunning ? "II" : ">"}</span>
+              <span className="inline-flex items-center justify-center">
+                <ControlIcon kind={isRunning ? "pause" : "play"} />
+              </span>
             </button>
             <button
               onClick={reset}
               aria-label="Reset timer"
               className="glass-subtle rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary transition-all duration-200 hover:-translate-y-px hover:border-accent/35"
             >
-              ↺
+              <span className="inline-flex items-center justify-center">
+                <ControlIcon kind="reset" />
+              </span>
             </button>
             <button
               onClick={skip}
               aria-label="Skip timer"
               className="glass-subtle rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary transition-all duration-200 hover:-translate-y-px hover:border-accent/35"
             >
-              »
+              <span className="inline-flex items-center justify-center">
+                <ControlIcon kind="skip" />
+              </span>
             </button>
           </div>
         </div>
