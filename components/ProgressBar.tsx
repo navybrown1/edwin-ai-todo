@@ -1,24 +1,56 @@
 "use client";
 
+function getMotivation(pct: number): string {
+  if (pct === 0)   return "Let's get started! 🚀";
+  if (pct < 20)   return "Great start — keep the momentum!";
+  if (pct < 40)   return "You're making real progress.";
+  if (pct < 60)   return "Halfway there — don't slow down!";
+  if (pct < 80)   return "Over halfway — finish strong! 💪";
+  if (pct < 100)  return "Almost there — final push!";
+  return "Everything complete — incredible! 🎉";
+}
+
 interface ProgressBarProps {
   pct: number;
 }
 
 export default function ProgressBar({ pct }: ProgressBarProps) {
+  const motivation = getMotivation(pct);
+
   return (
-    <div className="bg-surface border border-border rounded-[10px] px-5 py-4 mb-8 animate-fadeDown">
-      <div className="flex justify-between text-[11px] text-muted uppercase tracking-[0.1em] font-dm mb-2.5">
-        <span>Progress</span>
-        <span>{pct}%</span>
+    <div
+      className="glass rounded-2xl px-5 py-4 mb-8 animate-fadeDown"
+      style={{ animationDelay: "0.12s" }}
+    >
+      <div className="flex justify-between items-baseline mb-3">
+        <span className="text-[11px] tracking-[0.12em] uppercase text-muted font-dm">Progress</span>
+        <span className="text-[11px] text-muted font-dm">{motivation}</span>
       </div>
-      <div className="h-1.5 bg-border rounded-full overflow-hidden">
+
+      {/* Bar track */}
+      <div className="h-3 bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden relative">
         <div
-          className="h-full rounded-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className="h-full rounded-full progress-fill"
           style={{
             width: `${pct}%`,
-            background: "linear-gradient(90deg, #f0c040, #e87040)",
+            background: "linear-gradient(90deg, #c89a20, #f0c040, #e87040)",
+            transition: "width 0.7s cubic-bezier(0.34,1.3,0.64,1)",
+            boxShadow: pct > 0 ? "0 0 12px rgba(240,192,64,0.4)" : "none",
           }}
         />
+      </div>
+
+      {/* Percentage label */}
+      <div className="flex justify-end mt-2">
+        <span
+          className="text-[13px] font-syne font-bold"
+          style={{
+            color: pct === 100 ? "#34d399" : "#f0c040",
+            textShadow: pct === 100 ? "0 0 12px rgba(52,211,153,0.5)" : "0 0 10px rgba(240,192,64,0.4)",
+          }}
+        >
+          {pct}%
+        </span>
       </div>
     </div>
   );

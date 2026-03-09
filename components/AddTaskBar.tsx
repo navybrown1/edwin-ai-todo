@@ -15,9 +15,11 @@ export default function AddTaskBar({ onAdd, onAiParse }: AddTaskBarProps) {
   const [parsing, setParsing] = useState(false);
   const [categorizing, setCategorizing] = useState(false);
   const [parsedTasks, setParsedTasks] = useState<ParsedTask[] | null>(null);
+  const [focused, setFocused] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleBlur = useCallback(async () => {
+    setFocused(false);
     if (text.trim().length < 6) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -77,42 +79,50 @@ export default function AddTaskBar({ onAdd, onAiParse }: AddTaskBarProps) {
         <input
           value={text}
           onChange={e => setText(e.target.value)}
+          onFocus={() => setFocused(true)}
           onBlur={handleBlur}
           onKeyDown={e => e.key === "Enter" && handleAdd()}
           placeholder="Add a task — or type naturally for AI parsing…"
-          className="flex-1 min-w-0 bg-surface border border-border rounded-[10px] px-4 py-3.5 text-textPrimary
-            font-dm text-sm outline-none transition-colors duration-200 placeholder:text-muted
-            focus:border-accent"
+          className="flex-1 min-w-0 bg-surface border border-border rounded-[12px] px-4 py-3.5 text-textPrimary
+            font-dm text-sm outline-none transition-all duration-300 placeholder:text-muted/50"
+          style={focused ? {
+            borderColor: "rgba(240,192,64,0.5)",
+            boxShadow: "0 0 0 1px rgba(240,192,64,0.18), 0 0 20px rgba(240,192,64,0.07)",
+          } : {}}
         />
         <select
           value={cat}
           onChange={e => setCat(e.target.value)}
-          className={`bg-surface border rounded-[10px] px-3 py-3.5 text-textPrimary font-dm text-sm
-            outline-none cursor-pointer transition-all duration-200 focus:border-accent
-            ${categorizing ? "border-accent animate-pulse" : "border-border"}`}
+          className={`bg-surface border rounded-[12px] px-3 py-3.5 text-textPrimary font-dm text-sm
+            outline-none cursor-pointer transition-all duration-300 focus:border-accent/50
+            ${categorizing ? "border-accent/60 animate-pulse" : "border-border"}`}
         >
           {CATEGORIES.map(c => (
             <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
           ))}
         </select>
+
         {/* AI Parse button */}
         <button
           onClick={handleAiParse}
           disabled={parsing || !text.trim()}
           title="Parse with AI — splits compound sentences into multiple tasks"
-          className="bg-surface2 border border-accent/40 text-accent rounded-[10px] px-4 py-3.5
+          className="sparkle-hover bg-surface border border-accent/30 text-accent rounded-[12px] px-4 py-3.5
             font-syne font-bold text-xs whitespace-nowrap transition-all duration-200
-            hover:bg-accent hover:text-bg hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            hover:bg-accent/10 hover:border-accent/60 hover:-translate-y-[1px]
+            disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          {parsing ? "⟳ AI..." : "✦ AI Parse"}
+          <span className={`sparkle-icon inline-block mr-1 ${parsing ? "animate-pulse" : ""}`}>✦</span>
+          {parsing ? "AI…" : "AI Parse"}
         </button>
+
         {/* Add button */}
         <button
           onClick={handleAdd}
           disabled={!text.trim()}
-          className="bg-accent text-bg rounded-[10px] px-5 py-3.5 font-syne font-bold text-sm
-            whitespace-nowrap transition-all duration-150 hover:bg-[#f5d060] hover:-translate-y-px
-            active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-accent text-bg rounded-[12px] px-5 py-3.5 font-syne font-bold text-sm
+            whitespace-nowrap transition-all duration-200 hover:bg-[#f5d060] hover:-translate-y-[2px] hover:shadow-glow
+            active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
           + Add
         </button>
@@ -120,16 +130,20 @@ export default function AddTaskBar({ onAdd, onAiParse }: AddTaskBarProps) {
 
       {/* AI parsed tasks confirmation */}
       {parsedTasks && parsedTasks.length > 0 && (
-        <div className="mt-3 bg-[#1e1a0e] border border-[#7a6020] rounded-[10px] p-4 animate-slideIn">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-[#f0c040] font-dm mb-2.5">
-            ✦ AI parsed {parsedTasks.length} task{parsedTasks.length > 1 ? "s" : ""} — confirm to add:
+        <div
+          className="mt-3 border border-accent/20 rounded-[12px] p-4 animate-slideIn"
+          style={{ background: "rgba(240,192,64,0.05)", backdropFilter: "blur(8px)" }}
+        >
+          <div className="text-[11px] uppercase tracking-[0.12em] text-accent/80 font-dm mb-3 flex items-center gap-1.5">
+            <span className="sparkle-icon inline-block">✦</span>
+            AI parsed {parsedTasks.length} task{parsedTasks.length > 1 ? "s" : ""} — confirm to add:
           </div>
           <div className="flex flex-col gap-1.5 mb-3">
             {parsedTasks.map((t, i) => (
               <div key={i} className="flex items-center gap-2 text-sm font-dm text-textPrimary">
-                <span className="text-accent">+</span>
+                <span className="text-accent text-xs">+</span>
                 <span className="flex-1">{t.text}</span>
-                <span className="text-[11px] text-muted bg-surface2 border border-border rounded-full px-2 py-0.5">
+                <span className="text-[11px] text-muted bg-surface border border-border rounded-full px-2 py-0.5">
                   {t.cat.split(" ")[0]}
                 </span>
               </div>
@@ -139,14 +153,14 @@ export default function AddTaskBar({ onAdd, onAiParse }: AddTaskBarProps) {
             <button
               onClick={confirmParsed}
               className="bg-accent text-bg text-xs font-syne font-bold px-4 py-2 rounded-lg
-                hover:bg-[#f5d060] transition-colors"
+                hover:bg-[#f5d060] hover:shadow-glowSm transition-all duration-200"
             >
               ✓ Add All
             </button>
             <button
               onClick={() => setParsedTasks(null)}
               className="text-muted text-xs font-dm px-4 py-2 rounded-lg border border-border
-                hover:text-textPrimary hover:border-[#4a4a5a] transition-colors"
+                hover:text-textPrimary hover:border-[rgba(255,255,255,0.12)] transition-all duration-200"
             >
               Cancel
             </button>
