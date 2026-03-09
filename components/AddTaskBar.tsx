@@ -178,7 +178,6 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         <button
           onClick={handleAiParse}
           disabled={parsing || !text.trim()}
-          title="Parse with AI — splits compound thoughts into clean tasks"
           className="sparkle-hover bg-surface border border-accent/30 text-accent rounded-[14px] px-4 py-3.5 font-syne font-bold text-xs whitespace-nowrap transition-all duration-200 hover:bg-accent/10 hover:border-accent/60 hover:-translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
           <span className={`sparkle-icon inline-block mr-1 ${parsing ? "animate-pulse" : ""}`}>✦</span>

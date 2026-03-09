@@ -111,7 +111,7 @@ export default function TaskItem({
         <button
           onClick={() => onBreakdown(task)}
           disabled={isBreaking}
-          title="Break down with AI"
+          aria-label={isBreaking ? "Breaking task down" : "Break task down"}
           className={`opacity-0 group-hover:opacity-100 text-[11px] font-dm text-muted
             flex-shrink-0 transition-all duration-200 px-2 py-0.5 rounded-lg border border-transparent
             hover:text-accent hover:border-accent/30 hover:bg-accent/5
@@ -124,7 +124,7 @@ export default function TaskItem({
         {/* Delete */}
         <button
           onClick={() => onDelete(task.id)}
-          title="Delete task"
+          aria-label="Delete task"
           className="opacity-0 group-hover:opacity-100 text-[#ff4444]/60 hover:text-[#ff4444] text-sm
             px-1.5 py-0.5 rounded-lg hover:bg-[rgba(255,68,68,0.08)] transition-all duration-200 flex-shrink-0"
         >

@@ -10,6 +10,7 @@ import CategorySection from "@/components/CategorySection";
 import AiPanel from "@/components/AiPanel";
 import Toast from "@/components/Toast";
 import SpacePanel from "@/components/SpacePanel";
+import FocusPanel from "@/components/FocusPanel";
 import { APP_NAME } from "@/lib/ai-config";
 import { useAiActions } from "@/hooks/useAiActions";
 import { useLocalPreferences } from "@/hooks/useLocalPreferences";
@@ -147,6 +148,7 @@ export default function Home() {
 
       <StatsBar total={stats.total} remaining={stats.remaining} done={stats.done} />
       <ProgressBar pct={stats.pct} />
+      <FocusPanel spaceKey={spaceKey} />
 
       <AddTaskBar
         spaceKey={spaceKey}
