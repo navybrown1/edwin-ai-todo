@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateTask, deleteTask, getSubtasksForTask, createSubtask, updateSubtask } from "@/lib/db";
+import { updateTask, deleteTask, getSubtasksForTask, createSubtask, createSubtasksBulk, updateSubtask } from "@/lib/db";
 import { sanitizeSpaceKey } from "@/lib/space-utils";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -17,6 +17,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.action === "addSubtask") {
       const subtask = await createSubtask(id, spaceKey, body.text);
       return NextResponse.json(subtask);
+    }
+    if (body.action === "addSubtasksBulk") {
+      const texts = Array.isArray(body.texts) ? body.texts.filter((value: unknown): value is string => typeof value === "string") : [];
+      const cleanedTexts = texts.map((text: string) => text.trim()).filter(Boolean);
+      const subtasks = await createSubtasksBulk(id, spaceKey, cleanedTexts);
+      return NextResponse.json(subtasks);
     }
     if (body.action === "toggleSubtask") {
       const subtask = await updateSubtask(id, body.subtaskId, spaceKey, body.done);

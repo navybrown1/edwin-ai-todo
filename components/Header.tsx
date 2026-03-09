@@ -1,13 +1,14 @@
 "use client";
 
 import { APP_NAME, THEME_OPTIONS } from "@/lib/ai-config";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useEffect, useState } from "react";
 
 interface HeaderProps {
   title?: string;
 }
 
-function HeroStage() {
+function HeroStage({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <div className="hero-stage glass relative overflow-hidden rounded-[30px] px-6 py-6 sm:px-8 sm:py-7">
       <div className="relative z-10 flex items-center justify-between">
@@ -30,9 +31,9 @@ function HeroStage() {
       </div>
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="hero-stage-glow hero-stage-glow-a" />
-        <div className="hero-stage-glow hero-stage-glow-b" />
-        <div className="hero-stage-glow hero-stage-glow-c" />
+        {!reducedMotion && <div className="hero-stage-glow hero-stage-glow-a" />}
+        {!reducedMotion && <div className="hero-stage-glow hero-stage-glow-b" />}
+        {!reducedMotion && <div className="hero-stage-glow hero-stage-glow-c" />}
         <svg className="hero-stage-svg" viewBox="0 0 420 260" fill="none">
           <circle cx="210" cy="130" r="56" stroke="rgba(var(--accent-rgb),0.45)" strokeWidth="1.5" strokeDasharray="5 7" className="hero-orbit hero-orbit-slow" />
           <circle cx="210" cy="130" r="84" stroke="rgba(var(--blob-b-rgb),0.25)" strokeWidth="1" strokeDasharray="3 9" className="hero-orbit" />
@@ -53,6 +54,7 @@ function HeroStage() {
 
 export default function Header({ title = APP_NAME }: HeaderProps) {
   const [timeLabel, setTimeLabel] = useState("");
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const now = new Date();
@@ -66,14 +68,18 @@ export default function Header({ title = APP_NAME }: HeaderProps) {
           <div className="absolute -top-5 right-2 pointer-events-none select-none text-accent/80" aria-hidden>
             <svg width="130" height="80" viewBox="0 0 130 80" fill="none">
               <circle cx="110" cy="12" r="1.5" fill="currentColor" opacity="0.7">
-                <animate attributeName="opacity" values="0.7;0.15;0.7" dur="3s" repeatCount="indefinite" />
-                <animate attributeName="r" values="1.5;2.4;1.5" dur="3s" repeatCount="indefinite" />
+                {!reducedMotion && <animate attributeName="opacity" values="0.7;0.15;0.7" dur="3s" repeatCount="indefinite" />}
+                {!reducedMotion && <animate attributeName="r" values="1.5;2.4;1.5" dur="3s" repeatCount="indefinite" />}
               </circle>
               <circle cx="95" cy="45" r="1.8" fill="rgb(var(--accent2-rgb))" opacity="0.35">
-                <animate attributeName="opacity" values="0.35;0.8;0.35" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
+                {!reducedMotion && (
+                  <animate attributeName="opacity" values="0.35;0.8;0.35" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
+                )}
               </circle>
               <circle cx="80" cy="20" r="1.1" fill="rgb(var(--blob-b-rgb))" opacity="0.5">
-                <animate attributeName="opacity" values="0.5;1;0.5" dur="5s" begin="2s" repeatCount="indefinite" />
+                {!reducedMotion && (
+                  <animate attributeName="opacity" values="0.5;1;0.5" dur="5s" begin="2s" repeatCount="indefinite" />
+                )}
               </circle>
             </svg>
           </div>
@@ -107,7 +113,7 @@ export default function Header({ title = APP_NAME }: HeaderProps) {
           </p>
         </div>
 
-        <HeroStage />
+        <HeroStage reducedMotion={reducedMotion} />
       </div>
     </header>
   );

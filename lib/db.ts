@@ -242,6 +242,22 @@ export async function createTask(spaceKey: string, text: string, cat: string): P
   return { ...rows[0], subtasks: [] };
 }
 
+export async function createTasksBulk(
+  spaceKey: string,
+  tasks: Array<{
+    text: string;
+    cat: string;
+  }>,
+): Promise<Task[]> {
+  await ensureSpace(spaceKey);
+
+  if (tasks.length === 0) {
+    return [];
+  }
+
+  return Promise.all(tasks.map((task) => createTask(spaceKey, task.text, task.cat)));
+}
+
 export async function updateTask(
   id: number,
   spaceKey: string,
@@ -291,6 +307,27 @@ export async function deleteTask(id: number, spaceKey: string): Promise<void> {
   await sql`DELETE FROM tasks WHERE id = ${id} AND space_key = ${spaceKey}`;
 }
 
+export async function setTasksDoneBulk(spaceKey: string, taskIds: number[], done: boolean): Promise<Task[]> {
+  await ensureSpace(spaceKey);
+
+  if (taskIds.length === 0) {
+    return [];
+  }
+
+  return Promise.all(taskIds.map((taskId) => updateTask(taskId, spaceKey, { done })));
+}
+
+export async function deleteTasksBulk(spaceKey: string, taskIds: number[]): Promise<number> {
+  await ensureSpace(spaceKey);
+
+  if (taskIds.length === 0) {
+    return 0;
+  }
+
+  await Promise.all(taskIds.map((taskId) => deleteTask(taskId, spaceKey)));
+  return taskIds.length;
+}
+
 export async function createSubtask(taskId: number, spaceKey: string, text: string): Promise<Subtask> {
   await assertTaskInSpace(taskId, spaceKey);
 
@@ -301,6 +338,16 @@ export async function createSubtask(taskId: number, spaceKey: string, text: stri
   `;
 
   return rows[0];
+}
+
+export async function createSubtasksBulk(taskId: number, spaceKey: string, texts: string[]): Promise<Subtask[]> {
+  await assertTaskInSpace(taskId, spaceKey);
+
+  if (texts.length === 0) {
+    return [];
+  }
+
+  return Promise.all(texts.map((text) => createSubtask(taskId, spaceKey, text)));
 }
 
 export async function updateSubtask(

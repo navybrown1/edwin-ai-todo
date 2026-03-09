@@ -29,8 +29,8 @@ const config: Config = {
         catTech:      "#06b6d4",
       },
       fontFamily: {
-        syne: ["Syne", "sans-serif"],
-        dm:   ["DM Sans", "sans-serif"],
+        syne: ["var(--font-syne)", "sans-serif"],
+        dm:   ["var(--font-dm)", "sans-serif"],
       },
       keyframes: {
         fadeDown: {
