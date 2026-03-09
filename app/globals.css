@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0e0e10;
+  --surface: #18181c;
+  --surface2: #222228;
+  --border: #2e2e38;
+  --accent: #f0c040;
+  --accent2: #e87040;
+  --text: #f0efe8;
+  --muted: #7a7a8a;
+  --done-bg: #1a1f1a;
+  --done-text: #4a5a4a;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(240,192,64,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240,192,64,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* AI shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.ai-shimmer {
+  background: linear-gradient(90deg, var(--surface2), #3a3010, var(--surface2));
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
+}
+
+/* Prose for AI briefing markdown */
+.ai-prose p { margin-bottom: 0.75rem; line-height: 1.6; }
+.ai-prose strong { color: var(--accent); font-weight: 600; }
+.ai-prose ul { padding-left: 1.25rem; }
+.ai-prose li { margin-bottom: 0.4rem; }
+.ai-prose h3 { color: var(--accent); font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.5rem; }
