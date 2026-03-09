@@ -12,6 +12,16 @@ function syncSpaceUrl(nextSpaceKey: string) {
   window.history.replaceState({}, "", `${url.pathname}${url.search}`);
 }
 
+async function spaceHasTasks(spaceKey: string) {
+  const res = await fetch(`/api/tasks?spaceKey=${encodeURIComponent(spaceKey)}`, { cache: "no-store" });
+  if (!res.ok) {
+    return false;
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) && data.length > 0;
+}
+
 export function useSpaceSession() {
   const [spaceKey, setSpaceKey] = useState<string | null>(null);
   const [bootingSpace, setBootingSpace] = useState(true);
@@ -19,15 +29,38 @@ export function useSpaceSession() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const searchParams = new URLSearchParams(window.location.search);
-    const fromUrl = sanitizeSpaceKey(searchParams.get("space"));
-    const fromStorage = sanitizeSpaceKey(window.localStorage.getItem(ACTIVE_SPACE_STORAGE_KEY));
-    const resolvedSpaceKey = fromUrl ?? fromStorage ?? createSpaceKey();
+    let cancelled = false;
 
-    window.localStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, resolvedSpaceKey);
-    syncSpaceUrl(resolvedSpaceKey);
-    setSpaceKey(resolvedSpaceKey);
-    setBootingSpace(false);
+    const bootstrapSpace = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const fromUrl = sanitizeSpaceKey(searchParams.get("space"));
+      const fromStorage = sanitizeSpaceKey(window.localStorage.getItem(ACTIVE_SPACE_STORAGE_KEY));
+      let resolvedSpaceKey = fromUrl ?? fromStorage;
+
+      if (!resolvedSpaceKey) {
+        resolvedSpaceKey = (await spaceHasTasks("default")) ? "default" : createSpaceKey();
+      } else if (!fromUrl && fromStorage && fromStorage !== "default") {
+        const [storedHasTasks, defaultHasTasks] = await Promise.all([spaceHasTasks(fromStorage), spaceHasTasks("default")]);
+        if (!storedHasTasks && defaultHasTasks) {
+          resolvedSpaceKey = "default";
+        }
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      window.localStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, resolvedSpaceKey);
+      syncSpaceUrl(resolvedSpaceKey);
+      setSpaceKey(resolvedSpaceKey);
+      setBootingSpace(false);
+    };
+
+    void bootstrapSpace();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const startFreshSpace = useCallback(() => {

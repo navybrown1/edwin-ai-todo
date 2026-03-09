@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
-import { getModelLabel } from "@/lib/ai-config";
 import type { AiResponseMeta, GeminiModelId, ParsedTask } from "@/types";
 
 interface AddTaskBarProps {
@@ -19,10 +18,10 @@ function getDraftStorageKey(spaceKey: string) {
 
 function describeMeta(meta: AiResponseMeta) {
   if (!meta.fallbackUsed) {
-    return `Used ${getModelLabel(meta.model)}.`;
+    return "AI split it cleanly.";
   }
 
-  return `Fallback used: ${meta.attemptedModels.map(getModelLabel).join(" -> ")}.`;
+  return "AI took the faster route and still split it cleanly.";
 }
 
 export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, onAiMeta }: AddTaskBarProps) {

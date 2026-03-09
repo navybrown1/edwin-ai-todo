@@ -1,7 +1,7 @@
 import type { GeminiModelId, ThemeMode } from "@/types";
 
-export const APP_NAME = "Orbit";
-export const DEFAULT_SPACE_TITLE = "Orbit Board";
+export const APP_NAME = "Above";
+export const DEFAULT_SPACE_TITLE = "Above Board";
 export const DEFAULT_GEMINI_MODEL: GeminiModelId = "gemini-2.5-flash";
 export const DEFAULT_THEME_MODE: ThemeMode = "dark";
 
@@ -9,25 +9,21 @@ export const GEMINI_MODELS: Array<{
   id: GeminiModelId;
   label: string;
   description: string;
-  contextWindow: string;
 }> = [
   {
     id: "gemini-2.5-pro",
-    label: "Gemini 2.5 Pro",
+    label: "Deep",
     description: "Maximum depth for long plans, richer briefs, and heavier reasoning.",
-    contextWindow: "1M tokens",
   },
   {
     id: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash",
+    label: "Everyday",
     description: "Balanced speed and quality for everyday task work.",
-    contextWindow: "1M tokens",
   },
   {
     id: "gemini-2.5-flash-lite",
-    label: "Gemini 2.5 Flash-Lite",
+    label: "Quick",
     description: "Fastest fallback when the heavier models hit limits.",
-    contextWindow: "1M tokens",
   },
 ];
 

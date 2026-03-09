@@ -1,8 +1,8 @@
 "use client";
 
-import { getModelLabel } from "@/lib/ai-config";
+import { APP_NAME } from "@/lib/ai-config";
 import type { AiResponseMeta, GeminiModelId, Task } from "@/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface AiPanelProps {
   tasks: Task[];
@@ -48,22 +48,15 @@ function renderBriefing(text: string) {
   });
 }
 
-function describeLastResponse(meta: AiResponseMeta | null, primaryModel: GeminiModelId) {
-  if (!meta) {
-    return `Primary model: ${getModelLabel(primaryModel)}`;
-  }
-
-  if (!meta.fallbackUsed) {
-    return `Last response used ${getModelLabel(meta.model)}.`;
-  }
-
-  return `Fallback used: ${meta.attemptedModels.map(getModelLabel).join(" -> ")}.`;
-}
-
-export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta, onAiMeta }: AiPanelProps) {
+export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _lastAiMeta, onAiMeta }: AiPanelProps) {
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [monthLabel, setMonthLabel] = useState("");
+
+  useEffect(() => {
+    setMonthLabel(new Date().toLocaleString("en-US", { month: "long", year: "numeric" }));
+  }, []);
 
   const generateBriefing = async () => {
     try {
@@ -86,12 +79,6 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta, onAiM
 
   return (
     <div className="mt-8 animate-fadeUp" style={{ animationDelay: "0.3s" }}>
-      <div className="flex items-center gap-3 mb-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted/70 font-dm">AI Assistant</span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
       <div className="glass rounded-[24px] overflow-hidden">
         <div className="flex flex-col gap-3 px-5 py-4 border-b border-border/70 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -105,22 +92,19 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta, onAiM
             </div>
             <div>
               <span className="block text-xs font-syne font-bold tracking-[0.1em] uppercase text-muted/90">
-                Daily Brief
+                {APP_NAME} {monthLabel}
               </span>
-              <span className="block text-[11px] text-muted font-dm">{describeLastResponse(lastAiMeta, primaryModel)}</span>
+              <span className="block text-[11px] text-muted font-dm">A clear read on what matters next.</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
-            <span className="text-[10px] text-muted/70 font-dm uppercase tracking-[0.12em]">
-              {getModelLabel(primaryModel)}
-            </span>
             <button
               onClick={generateBriefing}
               disabled={loading}
               className="sparkle-hover bg-accent text-bg text-xs font-syne font-bold px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px hover:shadow-glowSm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
-              {loading ? "Thinking..." : "Generate"}
+              {loading ? "Thinking..." : "Plan It"}
             </button>
           </div>
         </div>
@@ -136,7 +120,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta, onAiM
                     style={{ width: `${width}%`, animationDelay: `${index * 0.12}s` }}
                   />
                 ))}
-                <p className="text-[11px] text-muted/60 font-dm mt-3">Analyzing your tasks and saved context...</p>
+                <p className="text-[11px] text-muted/60 font-dm mt-3">Reading your board...</p>
               </div>
             ) : briefing ? (
               <div className="ai-prose">{renderBriefing(briefing)}</div>
@@ -144,9 +128,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta, onAiM
           </div>
         ) : (
           <div className="px-5 py-5 text-center">
-            <p className="text-sm text-muted/75 font-dm leading-relaxed">
-              Generate a focused brief that uses your tasks plus the personal memory note saved above.
-            </p>
+            <p className="text-sm text-muted/75 font-dm leading-relaxed">Turn what is on the board into one clear plan.</p>
           </div>
         )}
       </div>

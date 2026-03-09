@@ -13,11 +13,7 @@ function HeroStage({ reducedMotion }: { reducedMotion: boolean }) {
     <div className="hero-stage glass relative overflow-hidden rounded-[30px] px-6 py-6 sm:px-8 sm:py-7">
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.28em] text-accent/75 font-dm">Live Vibe Board</p>
-          <h3 className="mt-2 font-syne text-[1.55rem] font-bold text-textPrimary">Shape the mood. Keep the motion.</h3>
-        </div>
-        <div className="rounded-full border border-accent/30 bg-surface/70 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-accent font-dm">
-          SVG Driven
+          <p className="text-[10px] uppercase tracking-[0.28em] text-accent/75 font-dm">March 2026</p>
         </div>
       </div>
 
@@ -25,7 +21,6 @@ function HeroStage({ reducedMotion }: { reducedMotion: boolean }) {
         {THEME_OPTIONS.map((theme) => (
           <div key={theme.id} className="mode-chip rounded-2xl border border-border bg-surface/65 px-3 py-2.5">
             <p className="text-sm font-syne font-bold text-textPrimary">{theme.label}</p>
-            <p className="mt-1 text-[11px] text-muted font-dm">{theme.vibe}</p>
           </div>
         ))}
       </div>
@@ -106,11 +101,9 @@ export default function Header({ title = APP_NAME }: HeaderProps) {
           <h1 className="font-syne text-[clamp(2.6rem,7vw,4.6rem)] font-extrabold leading-none tracking-tight">
             <span className="gradient-text">{title}</span>
           </h1>
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted/75 font-dm mt-3 mb-4">Mood-Driven AI Task Board</p>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-muted/75 font-dm mt-3 mb-4">Private task board</p>
 
-          <p className="max-w-[38rem] text-[14px] font-dm text-muted/85 leading-relaxed">
-            One private board, four personalities, and a cleaner way to keep your tasks, notes, and AI breakdowns in motion.
-          </p>
+          <p className="max-w-[38rem] text-[14px] font-dm text-muted/85 leading-relaxed">Keep the list clear. Keep the day moving.</p>
         </div>
 
         <HeroStage reducedMotion={reducedMotion} />

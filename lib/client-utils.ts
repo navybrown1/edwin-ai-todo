@@ -8,7 +8,7 @@ export function withSpaceKey(path: string, spaceKey: string) {
 
 export function normalizeBoardTitle(value?: string) {
   const trimmed = value?.trim();
-  if (!trimmed || trimmed === "Nova Space") return DEFAULT_SPACE_TITLE;
+  if (!trimmed || trimmed === "Nova Space" || trimmed === "Orbit Board") return DEFAULT_SPACE_TITLE;
   return trimmed;
 }
 

@@ -101,8 +101,8 @@ export default function SpacePanel({
         <div className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-accent/75 font-dm mb-2">Command Deck</p>
-              <h2 className="font-syne text-[1.6rem] leading-none text-textPrimary">Make the board yours</h2>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-accent/75 font-dm mb-2">Board</p>
+              <h2 className="font-syne text-[1.6rem] leading-none text-textPrimary">Set the tone</h2>
             </div>
             <div className="rounded-full border border-border bg-surface2/70 px-3 py-1.5 text-[11px] text-muted font-dm">
               {getSaveLabel(saveState)}
@@ -114,7 +114,7 @@ export default function SpacePanel({
             <input
               value={title}
               onChange={(event) => onTitleChange(event.target.value)}
-              placeholder="Orbit Board"
+              placeholder="Above Board"
               className="w-full rounded-[22px] border border-border bg-surface px-4 py-3 text-sm text-textPrimary outline-none transition-all duration-200 focus:border-accent/55 focus:shadow-glowSm"
             />
           </label>
@@ -131,22 +131,19 @@ export default function SpacePanel({
           </label>
 
           <div className="rounded-[26px] border border-border bg-surface2/70 p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Keep This Board</p>
-            <p className="mt-2 text-sm text-textPrimary/82 font-dm leading-relaxed">
-              Copy the private URL and open the exact same board on your phone whenever you want.
-            </p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Board Link</p>
             <div className="mt-4 flex flex-wrap gap-2.5">
               <button
                 onClick={onCopyLink}
                 className="rounded-xl bg-accent px-4 py-2.5 text-sm font-syne font-bold text-bg transition-all duration-200 hover:-translate-y-px hover:shadow-glow"
               >
-                Copy To Phone
+                Copy Link
               </button>
               <button
                 onClick={onStartFresh}
                 className="glass-subtle rounded-xl px-4 py-2.5 text-sm font-dm text-textPrimary transition-all duration-200 hover:-translate-y-px hover:border-accent/35 hover:text-accent"
               >
-                Start Fresh
+                New Board
               </button>
             </div>
           </div>
@@ -170,7 +167,7 @@ export default function SpacePanel({
           </div>
 
           <div>
-            <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Vibe Modes</p>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Modes</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {THEME_OPTIONS.map((theme) => (
                 <button
@@ -199,7 +196,7 @@ export default function SpacePanel({
           </div>
 
           <div>
-            <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted font-dm">AI Engine</p>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted font-dm">Thinking Style</p>
             <div className="space-y-3">
               {GEMINI_MODELS.map((model) => (
                 <button
@@ -218,8 +215,7 @@ export default function SpacePanel({
                       </div>
                       <div>
                         <div className="font-syne text-[1.05rem] font-bold text-textPrimary">{model.label}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-accent/75 font-dm">{model.contextWindow}</div>
-                        <p className="mt-3 max-w-[31rem] text-sm leading-relaxed text-muted font-dm">{model.description}</p>
+                        <p className="mt-2 max-w-[31rem] text-sm leading-relaxed text-muted font-dm">{model.description}</p>
                       </div>
                     </div>
                     <div className="rounded-full bg-bg/60 px-2.5 py-1 text-[10px] tracking-[0.12em] text-accent font-dm uppercase">
