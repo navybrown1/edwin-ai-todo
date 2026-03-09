@@ -10,7 +10,7 @@ import CategorySection from "@/components/CategorySection";
 import AiPanel from "@/components/AiPanel";
 import Toast from "@/components/Toast";
 import SpacePanel from "@/components/SpacePanel";
-import { DEFAULT_GEMINI_MODEL, DEFAULT_THEME_MODE, getModelLabel } from "@/lib/ai-config";
+import { APP_NAME, DEFAULT_GEMINI_MODEL, DEFAULT_SPACE_TITLE, DEFAULT_THEME_MODE, getModelLabel } from "@/lib/ai-config";
 import { createSpaceKey, sanitizeSpaceKey } from "@/lib/space-utils";
 import type {
   AiResponseMeta,
@@ -56,10 +56,16 @@ function describeAiUsage(meta: AiResponseMeta) {
   return `${meta.attemptedModels.map(getModelLabel).join(" -> ")}`;
 }
 
+function normalizeBoardTitle(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === "Nova Space") return DEFAULT_SPACE_TITLE;
+  return trimmed;
+}
+
 export default function Home() {
   const [spaceKey, setSpaceKey] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [title, setTitle] = useState("Nova Space");
+  const [title, setTitle] = useState(DEFAULT_SPACE_TITLE);
   const [memory, setMemory] = useState("");
   const [workspaceSaveState, setWorkspaceSaveState] = useState<WorkspaceSaveState>("idle");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -118,7 +124,7 @@ export default function Home() {
 
         workspaceHydrationRef.current = true;
         setWorkspace(spaceData);
-        setTitle(spaceData.title || "Nova Space");
+        setTitle(normalizeBoardTitle(spaceData.title));
         setMemory(spaceData.memory || "");
         setTasks(Array.isArray(tasksData) ? tasksData : []);
         setWorkspaceSaveState("idle");
@@ -479,7 +485,7 @@ export default function Home() {
     syncSpaceUrl(nextSpaceKey);
     workspaceHydrationRef.current = true;
     setWorkspace(null);
-    setTitle("Nova Space");
+    setTitle(DEFAULT_SPACE_TITLE);
     setMemory("");
     setTasks([]);
     setSpaceKey(nextSpaceKey);
@@ -507,7 +513,7 @@ export default function Home() {
       <div className="blob blob-2" style={{ width: 350, height: 350, top: "38%", right: "-20%", background: "rgba(var(--blob-b-rgb),0.1)" }} />
       <div className="blob blob-3" style={{ width: 300, height: 300, bottom: "5%", left: "8%", background: "rgba(var(--blob-c-rgb),0.09)" }} />
 
-      <Header />
+      <Header title={APP_NAME} />
 
       <SpacePanel
         spaceKey={spaceKey}

@@ -1,4 +1,5 @@
 import { sql } from "@vercel/postgres";
+import { DEFAULT_SPACE_TITLE } from "@/lib/ai-config";
 import type { Task, Subtask, Workspace } from "@/types";
 
 type TaskRow = Omit<Task, "subtasks">;
@@ -12,7 +13,7 @@ export async function ensureSchema(): Promise<void> {
         CREATE TABLE IF NOT EXISTS spaces (
           id SERIAL PRIMARY KEY,
           space_key VARCHAR(64) UNIQUE NOT NULL,
-          title VARCHAR(120) NOT NULL DEFAULT 'Nova Space',
+          title VARCHAR(120) NOT NULL DEFAULT 'Orbit Board',
           memory TEXT NOT NULL DEFAULT '',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -40,13 +41,14 @@ export async function ensureSchema(): Promise<void> {
       `;
 
       await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS space_key VARCHAR(64) NOT NULL DEFAULT 'default'`;
-      await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS title VARCHAR(120) NOT NULL DEFAULT 'Nova Space'`;
+      await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS title VARCHAR(120) NOT NULL DEFAULT 'Orbit Board'`;
+      await sql`ALTER TABLE spaces ALTER COLUMN title SET DEFAULT 'Orbit Board'`;
       await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS memory TEXT NOT NULL DEFAULT ''`;
       await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`;
 
       await sql`
         INSERT INTO spaces (space_key, title, memory)
-        VALUES ('default', 'Edwin''s Space', '')
+        VALUES ('default', 'Orbit Board', '')
         ON CONFLICT (space_key) DO NOTHING
       `;
 
@@ -77,7 +79,7 @@ async function ensureSpace(spaceKey: string): Promise<void> {
   await ensureSchema();
   await sql`
     INSERT INTO spaces (space_key, title, memory)
-    VALUES (${spaceKey}, 'Nova Space', '')
+    VALUES (${spaceKey}, ${DEFAULT_SPACE_TITLE}, '')
     ON CONFLICT (space_key) DO NOTHING
   `;
 }
@@ -124,7 +126,7 @@ export async function updateSpace(
   if (title !== undefined && memory !== undefined) {
     const { rows } = await sql<Workspace>`
       UPDATE spaces
-      SET title = ${title || "Nova Space"}, memory = ${memory}, updated_at = NOW()
+      SET title = ${title || DEFAULT_SPACE_TITLE}, memory = ${memory}, updated_at = NOW()
       WHERE space_key = ${spaceKey}
       RETURNING
         space_key AS "spaceKey",
@@ -139,7 +141,7 @@ export async function updateSpace(
   if (title !== undefined) {
     const { rows } = await sql<Workspace>`
       UPDATE spaces
-      SET title = ${title || "Nova Space"}, updated_at = NOW()
+      SET title = ${title || DEFAULT_SPACE_TITLE}, updated_at = NOW()
       WHERE space_key = ${spaceKey}
       RETURNING
         space_key AS "spaceKey",

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/ai-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nova — AI Task Manager",
-  description: "AI-powered task manager with natural language input, smart categorization, and daily briefings.",
+  title: `${APP_NAME} — Mood-Driven AI Task Board`,
+  description: `${APP_NAME} is a personal AI task board with animated themes, persistent notes, and Gemini fallback.`,
 };
 
 export default function RootLayout({
