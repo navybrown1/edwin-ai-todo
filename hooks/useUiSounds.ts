@@ -6,11 +6,13 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 type UiSoundKind = "tap" | "toggle" | "soft";
 
 type WebAudioWindow = Window & {
+  AudioContext?: typeof AudioContext;
   webkitAudioContext?: typeof AudioContext;
 };
 
 function canUseAudio(windowObject: Window) {
-  return Boolean(windowObject.AudioContext || (windowObject as WebAudioWindow).webkitAudioContext);
+  const audioWindow = windowObject as WebAudioWindow;
+  return Boolean(audioWindow.AudioContext || audioWindow.webkitAudioContext);
 }
 
 export function useUiSounds() {
@@ -25,7 +27,8 @@ export function useUiSounds() {
 
     const getContext = async () => {
       if (!contextRef.current) {
-        const AudioCtor = window.AudioContext || (window as WebAudioWindow).webkitAudioContext;
+        const audioWindow = window as WebAudioWindow;
+        const AudioCtor = audioWindow.AudioContext || audioWindow.webkitAudioContext;
         if (!AudioCtor) {
           return null;
         }
