@@ -53,6 +53,10 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%":       { opacity: "0.5" },
         },
+        breathe: {
+          "0%, 100%": { opacity: "0.15", transform: "scale(1)" },
+          "50%":       { opacity: "0.3", transform: "scale(1.08)" },
+        },
       },
       animation: {
         fadeDown:   "fadeDown 0.55s cubic-bezier(0.22,1,0.36,1) both",
@@ -60,12 +64,13 @@ const config: Config = {
         slideIn:    "slideIn 0.3s ease both",
         slideRight: "slideRight 0.35s cubic-bezier(0.22,1,0.36,1) both",
         pulse:      "pulse 1.5s ease-in-out infinite",
+        breathe:    "breathe 6s ease-in-out infinite",
       },
       boxShadow: {
-        glow:    "0 0 20px rgba(var(--accent-rgb),0.32), 0 0 40px rgba(var(--accent-rgb),0.12)",
-        glowSm:  "0 0 12px rgba(var(--accent-rgb),0.24)",
+        glow:    "0 0 20px rgb(var(--accent-rgb) / 0.32), 0 0 40px rgb(var(--accent-rgb) / 0.12)",
+        glowSm:  "0 0 12px rgb(var(--accent-rgb) / 0.24)",
         glowGrn: "0 0 16px rgba(52,211,153,0.25)",
-        card:    "0 4px 28px rgba(var(--shadow-rgb),0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+        card:    "0 4px 28px rgb(var(--shadow-rgb) / 0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
       },
     },
   },

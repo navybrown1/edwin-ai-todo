@@ -91,7 +91,7 @@ export default function FocusPanel({ spaceKey }: FocusPanelProps) {
       <div className="mt-5 flex justify-center">
         <div className="relative h-[208px] w-[208px]">
           <svg className="h-full w-full -rotate-90" viewBox="0 0 220 220" fill="none" aria-hidden="true">
-            <circle cx="110" cy="110" r="84" stroke="rgba(var(--border-rgb),0.9)" strokeWidth="12" />
+            <circle cx="110" cy="110" r="84" stroke="rgb(var(--border-rgb) / 0.9)" strokeWidth="12" />
             <circle
               cx="110"
               cy="110"
@@ -145,21 +145,21 @@ export default function FocusPanel({ spaceKey }: FocusPanelProps) {
         <button
           onClick={toggleRunning}
           aria-label={isRunning ? "Pause timer" : "Start timer"}
-          className="inline-flex items-center justify-center rounded-2xl bg-accent px-5 py-3 text-bg transition-all duration-200 hover:-translate-y-px hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+          className="primary-action inline-flex items-center justify-center rounded-2xl px-5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
         >
           <ControlIcon kind={isRunning ? "pause" : "play"} />
         </button>
         <button
           onClick={reset}
           aria-label="Reset timer"
-          className="inline-flex items-center justify-center glass-subtle rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary transition-all duration-200 hover:-translate-y-px hover:border-accent/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className="secondary-action inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
         >
           <ControlIcon kind="reset" />
         </button>
         <button
           onClick={skip}
           aria-label="Skip timer"
-          className="inline-flex items-center justify-center glass-subtle rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary transition-all duration-200 hover:-translate-y-px hover:border-accent/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className="secondary-action inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
         >
           <ControlIcon kind="skip" />
         </button>

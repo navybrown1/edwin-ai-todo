@@ -11,25 +11,78 @@ import AiPanel from "@/components/AiPanel";
 import Toast from "@/components/Toast";
 import SpacePanel from "@/components/SpacePanel";
 import FocusPanel from "@/components/FocusPanel";
-import { APP_NAME } from "@/lib/ai-config";
+import { APP_NAME, getThemeOption } from "@/lib/ai-config";
 import { useAiActions } from "@/hooks/useAiActions";
 import { useLocalPreferences } from "@/hooks/useLocalPreferences";
+import { useModeClickFx } from "@/hooks/useModeClickFx";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useSpaceSession } from "@/hooks/useSpaceSession";
 import { useTasks } from "@/hooks/useTasks";
 import { useToast } from "@/hooks/useToast";
 import { useUiSounds } from "@/hooks/useUiSounds";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import type { ThemeMode } from "@/types";
 
 type Filter = "all" | "active" | "done";
+
+function ModeEmptyIllustration({ themeMode }: { themeMode: ThemeMode }) {
+  if (themeMode === "light") {
+    return (
+      <svg width="68" height="68" viewBox="0 0 68 68" fill="none" className="text-accent opacity-45">
+        <circle cx="48" cy="18" r="8" fill="currentColor" opacity="0.16" />
+        <circle cx="48" cy="18" r="4" fill="currentColor" opacity="0.32" />
+        <path d="M8 52C18 36 31 39 42 46C49 41 56 40 60 44V60H8V52Z" fill="currentColor" opacity="0.08" />
+        <path d="M12 28C15 25 19 25 22 28" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+        <path d="M25 22C28 19 32 19 35 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.3" />
+      </svg>
+    );
+  }
+
+  if (themeMode === "girl") {
+    return (
+      <svg width="68" height="68" viewBox="0 0 68 68" fill="none" className="text-accent opacity-55">
+        <circle cx="18" cy="42" r="10" stroke="currentColor" strokeWidth="1.4" opacity="0.35" />
+        <circle cx="46" cy="20" r="12" stroke="currentColor" strokeWidth="1.2" opacity="0.26" />
+        <circle cx="38" cy="46" r="8" stroke="#9333ea" strokeWidth="1.2" opacity="0.28" />
+        <path d="M22 24L24 18L26 24L32 26L26 28L24 34L22 28L16 26Z" fill="currentColor" opacity="0.35" />
+        <path d="M49 50C49 50 43 45 43 40.5C43 37.8 45.2 36 47.8 36.8C49 35 51 34.6 52.8 35.2C55.4 36 57 38 57 40.5C57 45 49 50 49 50Z" fill="currentColor" opacity="0.22" />
+      </svg>
+    );
+  }
+
+  if (themeMode === "fun") {
+    return (
+      <svg width="68" height="68" viewBox="0 0 68 68" fill="none" className="text-accent opacity-45">
+        <circle cx="44" cy="18" r="10" stroke="currentColor" strokeWidth="1.2" opacity="0.3" />
+        <path d="M44 8V2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.24" />
+        <path d="M12 46L17 39L22 46L27 39L32 46" stroke="#0ea5e9" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" opacity="0.35" />
+        <rect x="14" y="18" width="5" height="3" rx="1" fill="currentColor" opacity="0.32" transform="rotate(18 14 18)" />
+        <rect x="50" y="36" width="5" height="3" rx="1" fill="#f97316" opacity="0.34" transform="rotate(-20 50 36)" />
+        <circle cx="22" cy="52" r="3.2" fill="currentColor" opacity="0.28" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="68" height="68" viewBox="0 0 68 68" fill="none" className="text-accent opacity-45">
+      <circle cx="34" cy="34" r="20" stroke="currentColor" strokeWidth="1.4" opacity="0.26" />
+      <circle cx="34" cy="34" r="11" stroke="currentColor" strokeWidth="1.2" opacity="0.18" />
+      <path d="M34 13V24" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.56" />
+      <path d="M21 52L47 16" stroke="#06b6d4" strokeWidth="1.4" strokeLinecap="round" opacity="0.34" />
+      <circle cx="17" cy="18" r="1.3" fill="currentColor" opacity="0.4" />
+      <circle cx="52" cy="46" r="1.1" fill="#8b5cf6" opacity="0.36" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const [filter, setFilter] = useState<Filter>("all");
   const reducedMotion = useReducedMotion();
-  useUiSounds();
   const { toast, showToast } = useToast();
   const { bootingSpace, getRecoveryLink, spaceKey, startFreshSpace } = useSpaceSession();
   const { themeMode, setThemeMode, primaryModel, setPrimaryModel } = useLocalPreferences();
+  useUiSounds();
+  useModeClickFx(themeMode);
   const handleLoadError = useCallback(() => showToast("Failed to load this private list", "error"), [showToast]);
   const {
     loadingWorkspace,
@@ -63,6 +116,7 @@ export default function Home() {
     notify: showToast,
     onAddSubtasksBulk: addSubtasksBulk,
   });
+  const themeMeta = useMemo(() => getThemeOption(themeMode), [themeMode]);
 
   const loading = loadingWorkspace || loadingTasks;
 
@@ -127,16 +181,17 @@ export default function Home() {
 
   return (
     <main className="relative z-10 max-w-[1220px] mx-auto px-5 py-10 pb-20">
-      <div className="blob blob-1" style={{ width: 400, height: 400, top: "-10%", left: "-15%", background: "rgba(var(--blob-a-rgb),0.13)" }} />
-      <div className="blob blob-2" style={{ width: 350, height: 350, top: "38%", right: "-20%", background: "rgba(var(--blob-b-rgb),0.1)" }} />
-      <div className="blob blob-3" style={{ width: 300, height: 300, bottom: "5%", left: "8%", background: "rgba(var(--blob-c-rgb),0.09)" }} />
+      <div className="blob blob-1" style={{ width: 400, height: 400, top: "-10%", left: "-15%", background: "rgb(var(--blob-a-rgb) / 0.13)" }} />
+      <div className="blob blob-2" style={{ width: 350, height: 350, top: "38%", right: "-20%", background: "rgb(var(--blob-b-rgb) / 0.1)" }} />
+      <div className="blob blob-3" style={{ width: 300, height: 300, bottom: "5%", left: "8%", background: "rgb(var(--blob-c-rgb) / 0.09)" }} />
 
-      <Header title={APP_NAME} />
+      <Header title={APP_NAME} themeMode={themeMode} />
 
       <SpacePanel
         spaceKey={spaceKey}
         title={title}
         memory={memory}
+        remainingTasks={stats.remaining}
         themeMode={themeMode}
         primaryModel={primaryModel}
         saveState={saveState}
@@ -192,16 +247,9 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-35 text-accent">
-                    <rect x="14" y="18" width="36" height="30" rx="4" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M14 26H50" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M22 34H34" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M22 40H30" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="32" cy="12" r="3" fill="currentColor" opacity="0.65" />
-                    <path d="M29 12H35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  <p className="text-muted/70 text-sm font-dm">This personal list is empty.</p>
-                  <p className="text-muted/55 text-xs font-dm">Add a task above or drop a messy thought into AI Parse.</p>
+                  <ModeEmptyIllustration themeMode={themeMode} />
+                  <p className="text-textPrimary/88 text-base font-syne">{themeMeta.emptyTitle}</p>
+                  <p className="max-w-sm text-muted/68 text-sm font-dm leading-relaxed">{themeMeta.emptyBody}</p>
                 </>
               )}
             </div>

@@ -12,25 +12,41 @@ export default function StatsBar({ total, remaining, done }: StatsBarProps) {
       num: total,
       label: "Total",
       numColor: "text-textPrimary/90",
-      borderGlow: "rgba(240,239,232,0.12)",
-      icon: "◈",
-      iconColor: "text-textPrimary/30",
+      borderGlow: "rgb(var(--text-rgb) / 0.12)",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" opacity="0.3" />
+          <path d="M6 8H14" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.25" />
+          <path d="M6 11H11" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.2" />
+        </svg>
+      ),
+      iconColor: "text-textPrimary/25",
     },
     {
       num: remaining,
       label: "Remaining",
       numColor: "text-accent",
-      borderGlow: "rgba(240,192,64,0.30)",
-      icon: "◉",
-      iconColor: "text-accent/40",
+      borderGlow: "rgb(var(--accent-rgb) / 0.30)",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.2" opacity="0.3" />
+          <path d="M10 6V10L13 12" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.25" />
+        </svg>
+      ),
+      iconColor: "text-accent/35",
     },
     {
       num: done,
       label: "Done",
       numColor: done > 0 ? "text-emerald-400" : "text-muted",
-      borderGlow: done > 0 ? "rgba(52,211,153,0.28)" : "rgba(255,255,255,0.05)",
-      icon: "✓",
-      iconColor: done > 0 ? "text-emerald-400/40" : "text-muted/30",
+      borderGlow: done > 0 ? "rgba(52,211,153,0.28)" : "rgb(var(--text-rgb) / 0.05)",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.2" opacity="0.3" />
+          <path d="M7 10L9.5 12.5L13.5 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3" />
+        </svg>
+      ),
+      iconColor: done > 0 ? "text-emerald-400/35" : "text-muted/25",
     },
   ];
 
@@ -48,7 +64,7 @@ export default function StatsBar({ total, remaining, done }: StatsBarProps) {
             style={{ background: `linear-gradient(90deg, transparent, ${borderGlow}, transparent)` }}
           />
           {/* Background icon */}
-          <div className={`absolute top-1.5 right-2.5 text-[1.5rem] font-bold leading-none select-none pointer-events-none ${iconColor}`}>
+          <div className={`absolute top-2 right-2.5 ${iconColor}`}>
             {icon}
           </div>
           <div className={`font-syne text-[1.75rem] font-extrabold leading-none ${numColor} relative z-10`}>

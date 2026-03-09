@@ -54,20 +54,32 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
   const [open, setOpen] = useState(false);
 
   const generateBriefing = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 22_000);
+
     try {
       setLoading(true);
       setOpen(true);
       const res = await fetch("/api/ai/briefing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ tasks, memory, primaryModel }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Could not generate briefing.");
+      }
       if (data.meta) onAiMeta(data.meta);
       setBriefing(data.briefing || data.error || "Could not generate briefing.");
-    } catch {
-      setBriefing("Failed to connect to AI. Check your API key.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setBriefing("AI took too long. Try the Quick model or run it again.");
+      } else {
+        setBriefing("Failed to connect to AI. Check your API key.");
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -79,7 +91,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
           <div className="flex items-center gap-3">
             <div
               className="ai-orb w-8 h-8 rounded-xl flex items-center justify-center text-accent"
-              style={{ background: "rgba(var(--accent-rgb),0.10)", border: "1px solid rgba(var(--accent-rgb),0.22)" }}
+              style={{ background: "rgb(var(--accent-rgb) / 0.10)", border: "1px solid rgb(var(--accent-rgb) / 0.22)" }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path className="logo-star" d="M12 2L14.09 9.26L21.41 11.27L14.09 13.28L12 20.54L9.91 13.28L2.59 11.27L9.91 9.26L12 2Z" fill="currentColor" />
@@ -95,7 +107,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
             <button
               onClick={generateBriefing}
               disabled={loading}
-              className="sparkle-hover bg-accent text-bg text-xs font-syne font-bold px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px hover:shadow-glowSm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+              className="sparkle-hover primary-action rounded-lg px-3.5 py-1.5 text-xs font-syne font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
             >
               {loading ? "Thinking..." : "Plan It"}
             </button>

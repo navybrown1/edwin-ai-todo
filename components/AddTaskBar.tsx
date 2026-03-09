@@ -154,8 +154,8 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
           style={
             focused
               ? {
-                  borderColor: "rgba(var(--accent-rgb),0.55)",
-                  boxShadow: "0 0 0 1px rgba(var(--accent-rgb),0.18), 0 0 22px rgba(var(--accent-rgb),0.12)",
+                  borderColor: "rgb(var(--accent-rgb) / 0.55)",
+                  boxShadow: "0 0 0 1px rgb(var(--accent-rgb) / 0.18), 0 0 22px rgb(var(--accent-rgb) / 0.12)",
                 }
               : undefined
           }
@@ -178,7 +178,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         <button
           onClick={handleAiParse}
           disabled={parsing || !text.trim()}
-          className="sparkle-hover bg-surface border border-accent/30 text-accent rounded-[18px] px-4 py-3.5 font-syne font-bold text-xs whitespace-nowrap transition-all duration-200 hover:bg-accent/10 hover:border-accent/60 hover:-translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className="sparkle-hover secondary-action rounded-[18px] px-4 py-3.5 font-syne font-bold text-xs whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
         >
           <span className={`sparkle-icon inline-block mr-1 ${parsing ? "animate-pulse" : ""}`}>✦</span>
           {parsing ? "AI..." : "AI Parse"}
@@ -187,7 +187,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         <button
           onClick={handleAdd}
           disabled={!text.trim()}
-          className="bg-accent text-bg rounded-[18px] px-5 py-3.5 font-syne font-bold text-sm whitespace-nowrap transition-all duration-200 hover:-translate-y-[2px] hover:shadow-glow active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+          className="primary-action rounded-[18px] px-5 py-3.5 font-syne font-bold text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
         >
           + Add
         </button>
@@ -196,7 +196,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
       {parsedTasks && parsedTasks.length > 0 && (
         <div
           className="mt-3 rounded-[18px] border border-accent/20 p-4 animate-slideIn"
-          style={{ background: "rgba(var(--accent-rgb),0.08)", backdropFilter: "blur(10px)" }}
+          style={{ background: "rgb(var(--accent-rgb) / 0.08)", backdropFilter: "blur(10px)" }}
         >
           <div className="text-[11px] uppercase tracking-[0.12em] text-accent/90 font-dm mb-3 flex items-center gap-1.5">
             <span className="sparkle-icon inline-block">✦</span>
@@ -217,7 +217,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
           <div className="flex gap-2">
             <button
               onClick={confirmParsed}
-              className="bg-accent text-bg text-xs font-syne font-bold px-4 py-2 rounded-lg hover:shadow-glowSm transition-all duration-200"
+              className="primary-action rounded-lg px-4 py-2 text-xs font-syne font-bold"
             >
               Add All
             </button>
@@ -226,7 +226,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
                 setParsedTasks(null);
                 setParseMeta(null);
               }}
-              className="text-muted text-xs font-dm px-4 py-2 rounded-lg border border-border hover:text-textPrimary hover:border-white/15 transition-all duration-200"
+              className="secondary-action rounded-lg px-4 py-2 text-xs font-dm text-muted"
             >
               Cancel
             </button>

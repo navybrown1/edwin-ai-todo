@@ -42,12 +42,12 @@ export default function TaskItem({
     <div
       className={`border rounded-[12px] px-4 py-3.5 transition-all duration-300 animate-slideIn group relative overflow-hidden
         ${task.done
-          ? "bg-doneBg border-[#151a15]"
-          : "bg-surface border-border hover:border-[rgba(255,255,255,0.12)] hover:-translate-y-[1px]"
+          ? "bg-doneBg border-doneBg"
+          : "bg-surface border-border hover:border-accent/15 hover:-translate-y-[1px]"
         }`}
       style={{
         animationDelay: animDelay,
-        boxShadow: task.done ? "none" : "0 2px 12px rgba(0,0,0,0.3)",
+        boxShadow: task.done ? "none" : "0 2px 12px rgb(var(--shadow-rgb) / 0.3)",
       }}
     >
       {/* Left category color bar */}

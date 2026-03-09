@@ -4,6 +4,26 @@ import type { AiResponseMeta, GeminiModelId } from "@/types";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+const DEFAULT_MODEL_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+}
 
 function shouldRetryWithFallback(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
@@ -32,6 +52,7 @@ export async function generateGeminiText(
   prompt: string,
   options?: {
     primaryModel?: GeminiModelId;
+    timeoutMs?: number;
   },
 ): Promise<{ text: string; meta: AiResponseMeta }> {
   if (!genAI) {
@@ -39,6 +60,7 @@ export async function generateGeminiText(
   }
 
   const primaryModel = options?.primaryModel ?? DEFAULT_GEMINI_MODEL;
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_MODEL_TIMEOUT_MS;
   const attemptedModels: GeminiModelId[] = [];
   let lastError: unknown;
 
@@ -47,7 +69,7 @@ export async function generateGeminiText(
 
     try {
       const model = genAI.getGenerativeModel({ model: modelId });
-      const result = await model.generateContent(prompt);
+      const result = await withTimeout(model.generateContent(prompt), timeoutMs, modelId);
 
       return {
         text: result.response.text().trim(),
