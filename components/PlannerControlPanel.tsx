@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { loadLocalPlannerSettings, saveLocalPlannerSettings } from "@/lib/local-store";
+import { fetchJson, withSpaceKey } from "@/lib/client-utils";
+import { loadLocalPlannerSettings, localPlannerSettingsHaveChanges, saveLocalPlannerSettings } from "@/lib/local-store";
 import type { PlannerSettings } from "@/types";
 
 interface PlannerCapabilities {
@@ -10,6 +11,10 @@ interface PlannerCapabilities {
   googleReady: boolean;
   pushPublicKey: string;
   pushReady: boolean;
+}
+
+interface PlannerSettingsPayload extends PlannerSettings {
+  capabilities: PlannerCapabilities;
 }
 
 interface PlannerControlPanelProps {
@@ -23,11 +28,62 @@ const LEAD_TIME_OPTIONS = [
   { label: "2 hr", value: 120 },
 ];
 
+const EMPTY_CAPABILITIES: PlannerCapabilities = {
+  emailReady: false,
+  googleReady: false,
+  pushPublicKey: "",
+  pushReady: false,
+};
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+function toPlannerSettings(payload: PlannerSettingsPayload | PlannerSettings): PlannerSettings {
+  return {
+    emailAddress: payload.emailAddress,
+    emailEnabled: payload.emailEnabled,
+    googleCalendarId: payload.googleCalendarId,
+    googleCalendarLabel: payload.googleCalendarLabel,
+    googleConnected: payload.googleConnected,
+    googleEmail: payload.googleEmail,
+    lastGoogleSyncAt: payload.lastGoogleSyncAt ?? null,
+    pushEnabled: payload.pushEnabled,
+    reminderLeadMinutes: payload.reminderLeadMinutes,
+    spaceKey: payload.spaceKey,
+    timezone: payload.timezone,
+  };
+}
+
+function persistLocalSettings(spaceKey: string, settings: PlannerSettings) {
+  return saveLocalPlannerSettings(spaceKey, {
+    emailAddress: settings.emailAddress,
+    emailEnabled: settings.emailEnabled,
+    googleCalendarId: settings.googleCalendarId,
+    googleCalendarLabel: settings.googleCalendarLabel,
+    googleConnected: settings.googleConnected,
+    googleEmail: settings.googleEmail,
+    lastGoogleSyncAt: settings.lastGoogleSyncAt ?? null,
+    pushEnabled: settings.pushEnabled,
+    reminderLeadMinutes: settings.reminderLeadMinutes,
+    timezone: settings.timezone,
+  });
+}
+
+function remotePlannerSettingsNeedMigration(settings: PlannerSettings) {
+  return Boolean(
+    settings.emailAddress.trim() ||
+      settings.emailEnabled ||
+      settings.pushEnabled ||
+      settings.reminderLeadMinutes !== 30 ||
+      settings.googleConnected ||
+      settings.googleEmail.trim() ||
+      settings.googleCalendarId !== "primary" ||
+      settings.googleCalendarLabel !== "Primary calendar",
+  );
 }
 
 function BellIcon() {
@@ -70,88 +126,335 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
   const [pushEnabled, setPushEnabled] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const capabilities = useMemo<PlannerCapabilities>(
-    () => ({
-      emailReady: false,
-      googleReady: false,
-      pushPublicKey: "",
-      pushReady: false,
-    }),
-    [],
+  const [syncMode, setSyncMode] = useState<"cloud" | "local">("cloud");
+  const [capabilities, setCapabilities] = useState<PlannerCapabilities>(EMPTY_CAPABILITIES);
+
+  const applySettings = useCallback((nextSettings: PlannerSettings) => {
+    setSettings(nextSettings);
+    setEmailAddress(nextSettings.emailAddress || "");
+    setReminderLeadMinutes(nextSettings.reminderLeadMinutes || 30);
+    setEmailEnabled(Boolean(nextSettings.emailEnabled));
+    setPushEnabled(Boolean(nextSettings.pushEnabled));
+  }, []);
+
+  const load = useCallback(
+    async (options?: { preserveStatus?: boolean }) => {
+      const localSettings = loadLocalPlannerSettings(spaceKey);
+
+      try {
+        let remotePayload = await fetchJson<PlannerSettingsPayload>(withSpaceKey("/api/planner/settings", spaceKey), {
+          cache: "no-store",
+        });
+
+        if (localPlannerSettingsHaveChanges(spaceKey) && !remotePlannerSettingsNeedMigration(toPlannerSettings(remotePayload))) {
+          remotePayload = await fetchJson<PlannerSettingsPayload>("/api/planner/settings", {
+            body: JSON.stringify({
+              emailAddress: localSettings.emailAddress,
+              emailEnabled: localSettings.emailEnabled,
+              googleCalendarId: localSettings.googleCalendarId,
+              googleCalendarLabel: localSettings.googleCalendarLabel,
+              pushEnabled: localSettings.pushEnabled,
+              reminderLeadMinutes: localSettings.reminderLeadMinutes,
+              spaceKey,
+              timezone: localSettings.timezone,
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "PATCH",
+          });
+
+          if (!options?.preserveStatus) {
+            setStatus("Recovered your planner settings into cloud sync.");
+          }
+        } else if (!options?.preserveStatus) {
+          setStatus(null);
+        }
+
+        const nextSettings = persistLocalSettings(spaceKey, toPlannerSettings(remotePayload));
+        applySettings(nextSettings);
+        setCapabilities(remotePayload.capabilities ?? EMPTY_CAPABILITIES);
+        setSyncMode("cloud");
+      } catch (error) {
+        console.error("Falling back to local planner settings:", error);
+        const nextSettings = persistLocalSettings(spaceKey, localSettings);
+        applySettings(nextSettings);
+        setCapabilities(EMPTY_CAPABILITIES);
+        setSyncMode("local");
+        if (!options?.preserveStatus) {
+          setStatus("Planner controls are saving locally on this device.");
+        }
+      }
+    },
+    [applySettings, spaceKey],
   );
 
-  const load = async () => {
-    const data = loadLocalPlannerSettings(spaceKey);
-    setSettings(data);
-    setEmailAddress(data.emailAddress || "");
-    setReminderLeadMinutes(data.reminderLeadMinutes || 30);
-    setEmailEnabled(Boolean(data.emailEnabled));
-    setPushEnabled(Boolean(data.pushEnabled));
-  };
-
   useEffect(() => {
-    void load().catch((error) => {
-      console.error("Failed to load planner control panel:", error);
-      setStatus("Could not load planner controls.");
-    });
-  }, [spaceKey]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!timezone) return;
+    if (!timezone || settings?.timezone === timezone) return;
 
-    const next = saveLocalPlannerSettings(spaceKey, { timezone });
-    setSettings((current) => current ?? next);
-  }, [spaceKey]);
+    persistLocalSettings(spaceKey, {
+      ...(settings ?? loadLocalPlannerSettings(spaceKey)),
+      timezone,
+    });
+  }, [settings, spaceKey]);
 
   const googleStatus = useMemo(() => {
     if (!settings) return "Loading...";
-    return "Google Calendar sync is scaffolded, but cloud planner services are offline in this environment right now.";
-  }, [settings]);
+    if (settings.googleConnected) {
+      const identity = settings.googleEmail ? `as ${settings.googleEmail}` : "to this space";
+      return `Connected ${identity}. Sync will pull from ${settings.googleCalendarLabel}.`;
+    }
+    if (capabilities.googleReady) {
+      return "Bring your Google Calendar into this planner and pull your schedule onto the board.";
+    }
+    return "Google Calendar sync is wired in code, but this environment still needs Google OAuth keys.";
+  }, [capabilities.googleReady, settings]);
 
-  const saveSettings = async () => {
-    setBusy("save");
-    setStatus(null);
-
-    const next = saveLocalPlannerSettings(spaceKey, {
+  const saveSettings = useCallback(async () => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const fallbackSettings = persistLocalSettings(spaceKey, {
+      ...(settings ?? loadLocalPlannerSettings(spaceKey)),
       emailAddress,
       emailEnabled,
       pushEnabled,
       reminderLeadMinutes,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone,
     });
 
-    setSettings(next);
-    setStatus("Planner preferences saved locally on this device.");
-    setBusy(null);
-  };
+    setBusy("save");
+    setStatus(null);
 
-  const connectGoogle = async () => {
-    setStatus("Google Calendar sync needs a healthy backend plus OAuth env vars before it can connect.");
-  };
+    try {
+      const payload = await fetchJson<PlannerSettingsPayload>("/api/planner/settings", {
+        body: JSON.stringify({
+          emailAddress,
+          emailEnabled,
+          pushEnabled,
+          reminderLeadMinutes,
+          spaceKey,
+          timezone,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
 
-  const syncGoogle = async () => {
-    setStatus("Google sync is not available while the app is running in local mode.");
-  };
+      const nextSettings = persistLocalSettings(spaceKey, toPlannerSettings(payload));
+      applySettings(nextSettings);
+      setCapabilities(payload.capabilities ?? EMPTY_CAPABILITIES);
+      setSyncMode("cloud");
+      setStatus("Planner preferences saved.");
+    } catch (error) {
+      console.error("Saving planner settings locally because cloud sync failed:", error);
+      applySettings(fallbackSettings);
+      setSyncMode("local");
+      setStatus("Planner preferences were saved locally on this device.");
+    } finally {
+      setBusy(null);
+    }
+  }, [applySettings, emailAddress, emailEnabled, pushEnabled, reminderLeadMinutes, settings, spaceKey]);
 
-  const disconnectGoogle = async () => {
-    setStatus("Google sync is not active in local mode.");
-  };
+  const connectGoogle = useCallback(async () => {
+    if (!capabilities.googleReady) {
+      setStatus("Google Calendar needs GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_OAUTH_REDIRECT_URI.");
+      return;
+    }
 
-  const enablePush = async () => {
-    setStatus("Device push alerts need cloud delivery plus VAPID keys before they can be enabled.");
-  };
+    setBusy("connect");
+    try {
+      const data = await fetchJson<{ authUrl: string }>(withSpaceKey("/api/planner/google/start", spaceKey), {
+        cache: "no-store",
+      });
+      window.location.assign(data.authUrl);
+    } catch (error) {
+      console.error("Failed to start Google Calendar auth:", error);
+      setStatus(error instanceof Error ? error.message : "Could not start Google Calendar connection.");
+      setBusy(null);
+    }
+  }, [capabilities.googleReady, spaceKey]);
 
-  const disablePush = async () => {
-    const next = saveLocalPlannerSettings(spaceKey, { pushEnabled: false });
-    setSettings(next);
-    setPushEnabled(false);
-    setStatus("Device alerts are stored as off in local mode.");
-  };
+  const syncGoogle = useCallback(async () => {
+    setBusy("sync");
+    try {
+      const result = await fetchJson<{ importedCount: number; ok: boolean }>("/api/planner/google/sync", {
+        body: JSON.stringify({ spaceKey }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
 
-  const sendTest = async () => {
-    setStatus("Test reminders need cloud delivery configured before they can send.");
-  };
+      await load({ preserveStatus: true });
+      window.dispatchEvent(new Event("planner-events-refresh"));
+      setSyncMode("cloud");
+      setStatus(`Imported ${result.importedCount} Google Calendar event${result.importedCount === 1 ? "" : "s"}.`);
+    } catch (error) {
+      console.error("Google Calendar sync failed:", error);
+      setStatus(error instanceof Error ? error.message : "Google Calendar sync failed.");
+    } finally {
+      setBusy(null);
+    }
+  }, [load, spaceKey]);
+
+  const disconnectGoogle = useCallback(async () => {
+    setBusy("disconnect");
+    try {
+      await fetchJson<{ ok: boolean }>("/api/planner/google/disconnect", {
+        body: JSON.stringify({ spaceKey }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      await load({ preserveStatus: true });
+      window.dispatchEvent(new Event("planner-events-refresh"));
+      setSyncMode("cloud");
+      setStatus("Google Calendar disconnected.");
+    } catch (error) {
+      console.error("Failed to disconnect Google Calendar:", error);
+      setStatus(error instanceof Error ? error.message : "Could not disconnect Google Calendar.");
+    } finally {
+      setBusy(null);
+    }
+  }, [load, spaceKey]);
+
+  const enablePush = useCallback(async () => {
+    if (!capabilities.pushReady || !capabilities.pushPublicKey) {
+      setStatus("Push alerts need NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY.");
+      return;
+    }
+
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setStatus("This browser does not support push notifications.");
+      return;
+    }
+
+    setBusy("push");
+
+    try {
+      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+      if (permission !== "granted") {
+        throw new Error("Notifications permission was not granted.");
+      }
+
+      const registration = await navigator.serviceWorker.register("/reminder-sw.js");
+      const existingSubscription = await registration.pushManager.getSubscription();
+      const subscription =
+        existingSubscription ??
+        (await registration.pushManager.subscribe({
+          applicationServerKey: urlBase64ToUint8Array(capabilities.pushPublicKey),
+          userVisibleOnly: true,
+        }));
+
+      await fetchJson<{ ok: boolean }>("/api/planner/push", {
+        body: JSON.stringify({ spaceKey, subscription }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      const payload = await fetchJson<PlannerSettingsPayload>("/api/planner/settings", {
+        body: JSON.stringify({
+          pushEnabled: true,
+          spaceKey,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+
+      const nextSettings = persistLocalSettings(spaceKey, toPlannerSettings(payload));
+      applySettings(nextSettings);
+      setCapabilities(payload.capabilities ?? EMPTY_CAPABILITIES);
+      setSyncMode("cloud");
+      setStatus("Device alerts enabled.");
+    } catch (error) {
+      console.error("Failed to enable push alerts:", error);
+      setStatus(error instanceof Error ? error.message : "Could not enable device alerts.");
+    } finally {
+      setBusy(null);
+    }
+  }, [applySettings, capabilities.pushPublicKey, capabilities.pushReady, spaceKey]);
+
+  const disablePush = useCallback(async () => {
+    setBusy("push");
+
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration =
+          (await navigator.serviceWorker.getRegistration("/reminder-sw.js")) ?? (await navigator.serviceWorker.getRegistration());
+        const subscription = await registration?.pushManager.getSubscription();
+
+        if (subscription) {
+          const endpoint = subscription.endpoint;
+          await subscription.unsubscribe().catch(() => undefined);
+          await fetchJson<{ ok: boolean }>(
+            `${withSpaceKey("/api/planner/push", spaceKey)}&endpoint=${encodeURIComponent(endpoint)}`,
+            {
+              method: "DELETE",
+            },
+          );
+        }
+      }
+
+      const payload = await fetchJson<PlannerSettingsPayload>("/api/planner/settings", {
+        body: JSON.stringify({
+          pushEnabled: false,
+          spaceKey,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+
+      const nextSettings = persistLocalSettings(spaceKey, toPlannerSettings(payload));
+      applySettings(nextSettings);
+      setCapabilities(payload.capabilities ?? EMPTY_CAPABILITIES);
+      setSyncMode("cloud");
+      setStatus("Device alerts disabled.");
+    } catch (error) {
+      console.error("Disabling push locally because cloud sync failed:", error);
+      const nextSettings = persistLocalSettings(spaceKey, {
+        ...(settings ?? loadLocalPlannerSettings(spaceKey)),
+        pushEnabled: false,
+      });
+      applySettings(nextSettings);
+      setSyncMode("local");
+      setStatus("Device alerts were disabled locally on this device.");
+    } finally {
+      setBusy(null);
+    }
+  }, [applySettings, settings, spaceKey]);
+
+  const sendTest = useCallback(async () => {
+    setBusy("test");
+    try {
+      const result = await fetchJson<{ delivered: string[] }>("/api/planner/reminders/test", {
+        body: JSON.stringify({ spaceKey }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      setStatus(`Test reminder sent via ${result.delivered.join(" and ")}.`);
+    } catch (error) {
+      console.error("Failed to send reminder test:", error);
+      setStatus(error instanceof Error ? error.message : "Could not send a test reminder.");
+    } finally {
+      setBusy(null);
+    }
+  }, [spaceKey]);
 
   useEffect(() => {
     const plannerState = searchParams.get("planner");
@@ -163,7 +466,8 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
     window.history.replaceState({}, "", nextPath);
 
     if (plannerState === "google-connected") {
-      setStatus("Google returned from OAuth, but the cloud planner backend is offline so the account was not attached.");
+      setStatus("Google Calendar connected. Syncing your schedule...");
+      void syncGoogle();
       return;
     }
 
@@ -180,7 +484,7 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
           <p className="mt-2 font-syne text-[1.35rem] leading-none text-textPrimary">Planner Ops</p>
         </div>
         <div className="rounded-full border border-border bg-surface2/70 px-3 py-1.5 text-[11px] font-dm uppercase tracking-[0.14em] text-muted">
-          {busy ? "Working" : "Ready"}
+          {busy ? "Working" : syncMode === "cloud" ? "Cloud sync" : "Local backup"}
         </div>
       </div>
 
@@ -195,7 +499,7 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
               <p className="mt-2 text-sm font-dm leading-relaxed text-textPrimary/88">{googleStatus}</p>
             </div>
             <div className="rounded-full border border-border bg-surface2/75 px-3 py-1.5 text-[11px] font-dm uppercase tracking-[0.12em] text-muted">
-              Local Mode
+              {settings?.googleConnected ? "Connected" : capabilities.googleReady ? "Ready" : "Needs Keys"}
             </div>
           </div>
 
@@ -221,7 +525,8 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
             ) : (
               <button
                 onClick={connectGoogle}
-                className="primary-action inline-flex items-center gap-2 rounded-[14px] px-3.5 py-2 text-xs font-syne font-bold"
+                disabled={busy === "connect"}
+                className="primary-action inline-flex items-center gap-2 rounded-[14px] px-3.5 py-2 text-xs font-syne font-bold disabled:opacity-50"
               >
                 <GoogleIcon />
                 Connect Google
@@ -300,17 +605,20 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
 
             <button
               onClick={sendTest}
-              className="secondary-action rounded-[14px] px-3.5 py-2 text-xs font-dm text-textPrimary"
+              disabled={busy === "test"}
+              className="secondary-action rounded-[14px] px-3.5 py-2 text-xs font-dm text-textPrimary disabled:opacity-50"
             >
               Send Test
             </button>
           </div>
 
           <p className="mt-3 text-[11px] font-dm leading-relaxed text-muted/78">
-            Manual planning preferences save locally on this device right now. Cloud delivery for Google sync, push, and email remains scaffolded but unavailable until the backend quota and environment keys are restored.
+            {syncMode === "cloud"
+              ? "Planner preferences are syncing to the live workspace."
+              : "Planner preferences are currently saving locally on this device until cloud sync returns."}
           </p>
           <p className="mt-2 text-[11px] font-dm leading-relaxed text-muted/62">
-            Email delivery stays unavailable until `RESEND_API_KEY`, `REMINDER_FROM_EMAIL`, Google OAuth, and push keys are present alongside a healthy backend connection.
+            Missing providers keep their own features disabled. Google needs OAuth keys, email needs Resend keys, and push needs VAPID keys.
           </p>
         </div>
 

@@ -293,6 +293,34 @@ export function saveLocalPlannerSettings(spaceKey: string, update: Partial<Plann
   return next;
 }
 
+export function localWorkspaceHasContent(spaceKey: string) {
+  const workspace = loadLocalWorkspace(spaceKey);
+  return workspace.title.trim() !== DEFAULT_SPACE_TITLE || Boolean(workspace.memory.trim());
+}
+
+export function localSpaceHasPlannerEvents(spaceKey: string) {
+  return loadLocalPlannerEvents(spaceKey).length > 0;
+}
+
+export function localPlannerSettingsHaveChanges(spaceKey: string) {
+  const settings = loadLocalPlannerSettings(spaceKey);
+
+  return Boolean(
+    settings.emailAddress.trim() ||
+      settings.emailEnabled ||
+      settings.pushEnabled ||
+      settings.reminderLeadMinutes !== 30 ||
+      settings.googleConnected ||
+      settings.googleEmail.trim() ||
+      settings.googleCalendarId !== "primary" ||
+      settings.googleCalendarLabel !== "Primary calendar",
+  );
+}
+
 export function localSpaceHasTasks(spaceKey: string) {
   return loadLocalTasks(spaceKey).length > 0;
+}
+
+export function localSpaceHasAnyData(spaceKey: string) {
+  return localSpaceHasTasks(spaceKey) || localWorkspaceHasContent(spaceKey) || localSpaceHasPlannerEvents(spaceKey);
 }

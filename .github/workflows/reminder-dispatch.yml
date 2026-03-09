@@ -1,0 +1,21 @@
+name: Reminder Dispatch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger planner reminder dispatch
+        env:
+          REMINDER_DISPATCH_SECRET: ${{ secrets.REMINDER_DISPATCH_SECRET }}
+          REMINDER_DISPATCH_URL: https://edwin-ai-todo.vercel.app/api/planner/reminders/dispatch
+        run: |
+          curl --fail --show-error --silent \
+            -H "Authorization: Bearer ${REMINDER_DISPATCH_SECRET}" \
+            "${REMINDER_DISPATCH_URL}"

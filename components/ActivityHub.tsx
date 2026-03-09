@@ -1,6 +1,7 @@
 "use client";
 
 import { getThemeOption } from "@/lib/ai-config";
+import { fetchJson, withSpaceKey } from "@/lib/client-utils";
 import { createLocalPlannerEvent, loadLocalPlannerEvents, saveLocalPlannerEvents } from "@/lib/local-store";
 import type { PlannerEvent, ThemeMode } from "@/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -75,6 +76,37 @@ function toScheduledAt(date: string, time?: string) {
   const [year, month, day] = date.split("-").map(Number);
   const [hours, minutes] = time.split(":").map(Number);
   return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
+}
+
+function syncLocalEvents(spaceKey: string, events: CalendarEvent[]) {
+  saveLocalPlannerEvents(spaceKey, events);
+  return events;
+}
+
+async function migrateLocalEvents(spaceKey: string, events: CalendarEvent[]) {
+  await fetchJson<CalendarEvent[]>("/api/planner/events", {
+    body: JSON.stringify({
+      events: events.map((event) => ({
+        calendarId: event.calendarId ?? null,
+        color: event.color,
+        date: event.date,
+        externalId: event.externalId ?? null,
+        scheduledAt: event.scheduledAt ?? null,
+        source: event.source,
+        text: event.text,
+        time: event.time,
+      })),
+      spaceKey,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  return fetchJson<CalendarEvent[]>(withSpaceKey("/api/planner/events", spaceKey), {
+    cache: "no-store",
+  });
 }
 
 function Chevron({ direction }: { direction: "left" | "right" }) {
@@ -159,6 +191,8 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
   const [newEventText, setNewEventText] = useState("");
   const [newEventTime, setNewEventTime] = useState("");
   const [newEventColor, setNewEventColor] = useState(EVENT_COLORS[0]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [syncMode, setSyncMode] = useState<"cloud" | "local">("cloud");
   const palette = useMemo(
     () => [activeTheme.accent, ...EVENT_COLORS.filter((color) => color.toLowerCase() !== activeTheme.accent.toLowerCase())],
     [activeTheme.accent],
@@ -167,7 +201,28 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
   const loadEvents = useCallback(async () => {
     if (!spaceKey) return;
 
-    setEvents(loadLocalPlannerEvents(spaceKey).sort(sortEvents));
+    const localEvents = loadLocalPlannerEvents(spaceKey).sort(sortEvents);
+
+    try {
+      let remoteEvents = await fetchJson<CalendarEvent[]>(withSpaceKey("/api/planner/events", spaceKey), {
+        cache: "no-store",
+      });
+
+      if (remoteEvents.length === 0 && localEvents.length > 0) {
+        remoteEvents = await migrateLocalEvents(spaceKey, localEvents);
+        setStatusMessage("Recovered your saved plans into cloud sync.");
+      } else {
+        setStatusMessage(null);
+      }
+
+      setSyncMode("cloud");
+      setEvents(syncLocalEvents(spaceKey, remoteEvents.sort(sortEvents)));
+    } catch (error) {
+      console.error("Falling back to local planner events:", error);
+      setSyncMode("local");
+      setStatusMessage("Planner sync is offline. Events are saving on this device.");
+      setEvents(syncLocalEvents(spaceKey, localEvents));
+    }
   }, [spaceKey]);
 
   useEffect(() => {
@@ -287,46 +342,101 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
   const submitEvent = async () => {
     if (!newEventText.trim()) return;
 
-    if (editingEventId) {
-      const nextEvents = events
-        .map((event) =>
-          event.id === editingEventId
-            ? {
-                ...event,
-                color: newEventColor,
-                date: selectedDateKey,
-                scheduledAt: toScheduledAt(selectedDateKey, newEventTime || undefined),
-                text: newEventText.trim(),
-                time: newEventTime || undefined,
-                updated_at: new Date().toISOString(),
-              }
-            : event,
-        )
-        .sort(sortEvents);
-
-      saveLocalPlannerEvents(spaceKey, nextEvents);
-      setEvents(nextEvents);
-      resetComposer();
-      return;
-    }
-
-    const nextEvent = createLocalPlannerEvent(spaceKey, {
+    const payload = {
       color: newEventColor,
       date: selectedDateKey,
       scheduledAt: toScheduledAt(selectedDateKey, newEventTime || undefined),
       text: newEventText.trim(),
       time: newEventTime || undefined,
-    });
-    const nextEvents = [...events, nextEvent].sort(sortEvents);
-    saveLocalPlannerEvents(spaceKey, nextEvents);
-    setEvents(nextEvents);
+    };
+
+    if (editingEventId) {
+      try {
+        const updatedEvent = await fetchJson<CalendarEvent>(`/api/planner/events/${editingEventId}`, {
+          body: JSON.stringify({
+            spaceKey,
+            ...payload,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        });
+
+        setSyncMode("cloud");
+        setStatusMessage(null);
+        setEvents(
+          syncLocalEvents(
+            spaceKey,
+            events.map((event) => (event.id === editingEventId ? updatedEvent : event)).sort(sortEvents),
+          ),
+        );
+      } catch (error) {
+        console.error("Saving planner event locally because cloud sync failed:", error);
+        setSyncMode("local");
+        setStatusMessage("Planner sync is offline. This edit was saved on this device.");
+        setEvents(
+          syncLocalEvents(
+            spaceKey,
+            events
+              .map((event) =>
+                event.id === editingEventId
+                  ? {
+                      ...event,
+                      ...payload,
+                      updated_at: new Date().toISOString(),
+                    }
+                  : event,
+              )
+              .sort(sortEvents),
+          ),
+        );
+      }
+
+      resetComposer();
+      return;
+    }
+
+    try {
+      const nextEvent = await fetchJson<CalendarEvent>("/api/planner/events", {
+        body: JSON.stringify({
+          spaceKey,
+          ...payload,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      setSyncMode("cloud");
+      setStatusMessage(null);
+      setEvents(syncLocalEvents(spaceKey, [...events, nextEvent].sort(sortEvents)));
+    } catch (error) {
+      console.error("Saving planner event locally because cloud sync failed:", error);
+      const nextEvent = createLocalPlannerEvent(spaceKey, payload);
+      setSyncMode("local");
+      setStatusMessage("Planner sync is offline. This plan was saved on this device.");
+      setEvents(syncLocalEvents(spaceKey, [...events, nextEvent].sort(sortEvents)));
+    }
+
     resetComposer();
   };
 
   const deleteEvent = async (id: string) => {
-    const nextEvents = events.filter((event) => event.id !== id);
-    saveLocalPlannerEvents(spaceKey, nextEvents);
-    setEvents(nextEvents);
+    try {
+      await fetchJson<{ ok: true }>(withSpaceKey(`/api/planner/events/${id}`, spaceKey), {
+        method: "DELETE",
+      });
+      setSyncMode("cloud");
+      setStatusMessage(null);
+    } catch (error) {
+      console.error("Deleting planner event locally because cloud sync failed:", error);
+      setSyncMode("local");
+      setStatusMessage("Planner sync is offline. This deletion only happened on this device.");
+    }
+
+    setEvents(syncLocalEvents(spaceKey, events.filter((event) => event.id !== id)));
   };
 
   return (
@@ -345,6 +455,7 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
           </div>
 
           <div className="flex items-center gap-2">
+            <span className="calendar-chip">{syncMode === "cloud" ? "Cloud sync" : "Local backup"}</span>
             <button
               onClick={() => goToMonth(-1)}
               aria-label="Previous month"
@@ -381,6 +492,7 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
               ) : null}
             </div>
             <p className="mt-2 text-[13px] font-dm leading-relaxed text-muted/82">{selectedPlanCopy}</p>
+            {statusMessage ? <p className="mt-2 text-[11px] font-dm leading-relaxed text-accent/82">{statusMessage}</p> : null}
           </div>
 
           <div className="grid gap-2 sm:grid-cols-3">

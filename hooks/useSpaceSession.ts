@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { localSpaceHasTasks } from "@/lib/local-store";
+import { fetchJson, withSpaceKey, workspaceHasContent } from "@/lib/client-utils";
+import { localSpaceHasAnyData } from "@/lib/local-store";
 import { createSpaceKey, sanitizeSpaceKey } from "@/lib/space-utils";
+import type { PlannerEvent, Task, Workspace } from "@/types";
 
 const ACTIVE_SPACE_STORAGE_KEY = "nova.active-space-key";
 
@@ -13,8 +15,19 @@ function syncSpaceUrl(nextSpaceKey: string) {
   window.history.replaceState({}, "", `${url.pathname}${url.search}`);
 }
 
-async function spaceHasTasks(spaceKey: string) {
-  return localSpaceHasTasks(spaceKey);
+async function spaceHasData(spaceKey: string) {
+  try {
+    const [tasks, workspace, events] = await Promise.all([
+      fetchJson<Task[]>(withSpaceKey("/api/tasks", spaceKey), { cache: "no-store" }),
+      fetchJson<Workspace>(withSpaceKey("/api/space", spaceKey), { cache: "no-store" }),
+      fetchJson<PlannerEvent[]>(withSpaceKey("/api/planner/events", spaceKey), { cache: "no-store" }),
+    ]);
+
+    return tasks.length > 0 || events.length > 0 || workspaceHasContent(workspace);
+  } catch (error) {
+    console.error("Falling back to local board detection:", error);
+    return localSpaceHasAnyData(spaceKey);
+  }
 }
 
 export function useSpaceSession() {
@@ -33,10 +46,10 @@ export function useSpaceSession() {
       let resolvedSpaceKey = fromUrl ?? fromStorage;
 
       if (!resolvedSpaceKey) {
-        resolvedSpaceKey = (await spaceHasTasks("default")) ? "default" : createSpaceKey();
+        resolvedSpaceKey = (await spaceHasData("default")) ? "default" : createSpaceKey();
       } else if (!fromUrl && fromStorage && fromStorage !== "default") {
-        const [storedHasTasks, defaultHasTasks] = await Promise.all([spaceHasTasks(fromStorage), spaceHasTasks("default")]);
-        if (!storedHasTasks && defaultHasTasks) {
+        const [storedHasData, defaultHasData] = await Promise.all([spaceHasData(fromStorage), spaceHasData("default")]);
+        if (!storedHasData && defaultHasData) {
           resolvedSpaceKey = "default";
         }
       }

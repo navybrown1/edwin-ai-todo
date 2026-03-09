@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_SPACE_TITLE } from "@/lib/ai-config";
-import { normalizeBoardTitle } from "@/lib/client-utils";
+import { fetchJson, normalizeBoardTitle, withSpaceKey, workspaceHasContent } from "@/lib/client-utils";
 import { loadLocalWorkspace, saveLocalWorkspace } from "@/lib/local-store";
 import type { Workspace } from "@/types";
 
@@ -10,6 +10,18 @@ type WorkspaceSaveState = "idle" | "saving" | "saved" | "error" | "local";
 
 interface UseWorkspaceOptions {
   onLoadError?: () => void;
+}
+
+function mergeWorkspaceSnapshot(remoteWorkspace: Workspace, localWorkspace: Workspace) {
+  if (!workspaceHasContent(localWorkspace) || workspaceHasContent(remoteWorkspace)) {
+    return remoteWorkspace;
+  }
+
+  return {
+    ...remoteWorkspace,
+    memory: localWorkspace.memory,
+    title: localWorkspace.title,
+  };
 }
 
 export function useWorkspace(spaceKey: string | null, options: UseWorkspaceOptions = {}) {
@@ -27,17 +39,54 @@ export function useWorkspace(spaceKey: string | null, options: UseWorkspaceOptio
     activeSpaceRef.current = spaceKey;
   }, [spaceKey]);
 
-  const loadWorkspace = useCallback(async (nextSpaceKey: string) => {
-    setLoadingWorkspace(true);
+  const loadWorkspace = useCallback(
+    async (nextSpaceKey: string) => {
+      setLoadingWorkspace(true);
+      const localWorkspace = loadLocalWorkspace(nextSpaceKey);
 
-    const nextWorkspace = loadLocalWorkspace(nextSpaceKey);
-    hydrationRef.current = true;
-    setWorkspace(nextWorkspace);
-    setTitle(normalizeBoardTitle(nextWorkspace.title));
-    setMemory(nextWorkspace.memory || "");
-    setSaveState("local");
-    setLoadingWorkspace(false);
-  }, []);
+      try {
+        const remoteWorkspace = await fetchJson<Workspace>(withSpaceKey("/api/space", nextSpaceKey), {
+          cache: "no-store",
+        });
+        const mergedWorkspace = mergeWorkspaceSnapshot(remoteWorkspace, localWorkspace);
+        const resolvedWorkspace =
+          mergedWorkspace === remoteWorkspace
+            ? remoteWorkspace
+            : await fetchJson<Workspace>("/api/space", {
+                body: JSON.stringify({
+                  memory: mergedWorkspace.memory,
+                  spaceKey: nextSpaceKey,
+                  title: mergedWorkspace.title,
+                }),
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                method: "PATCH",
+              });
+
+        hydrationRef.current = true;
+        saveLocalWorkspace(nextSpaceKey, {
+          memory: resolvedWorkspace.memory,
+          title: resolvedWorkspace.title,
+        });
+        setWorkspace(resolvedWorkspace);
+        setTitle(normalizeBoardTitle(resolvedWorkspace.title));
+        setMemory(resolvedWorkspace.memory || "");
+        setSaveState("idle");
+      } catch (error) {
+        console.error("Falling back to local workspace storage:", error);
+        hydrationRef.current = true;
+        setWorkspace(localWorkspace);
+        setTitle(normalizeBoardTitle(localWorkspace.title));
+        setMemory(localWorkspace.memory || "");
+        setSaveState("local");
+        onLoadError?.();
+      } finally {
+        setLoadingWorkspace(false);
+      }
+    },
+    [onLoadError],
+  );
 
   useEffect(() => {
     if (!spaceKey) return;
@@ -54,13 +103,43 @@ export function useWorkspace(spaceKey: string | null, options: UseWorkspaceOptio
 
     const seq = ++saveSeqRef.current;
     const targetSpaceKey = spaceKey;
+    const nextTitle = title;
+    const nextMemory = memory;
     setSaveState("saving");
 
     const timeout = setTimeout(async () => {
-      const nextWorkspace = saveLocalWorkspace(spaceKey, { memory, title });
-      if (seq === saveSeqRef.current && targetSpaceKey === activeSpaceRef.current) {
-        setWorkspace(nextWorkspace);
-        setSaveState("local");
+      const localWorkspace = saveLocalWorkspace(targetSpaceKey, {
+        memory: nextMemory,
+        title: nextTitle,
+      });
+
+      try {
+        const nextWorkspace = await fetchJson<Workspace>("/api/space", {
+          body: JSON.stringify({
+            memory: nextMemory,
+            spaceKey: targetSpaceKey,
+            title: nextTitle,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        });
+
+        if (seq === saveSeqRef.current && targetSpaceKey === activeSpaceRef.current) {
+          saveLocalWorkspace(targetSpaceKey, {
+            memory: nextWorkspace.memory,
+            title: nextWorkspace.title,
+          });
+          setWorkspace(nextWorkspace);
+          setSaveState("saved");
+        }
+      } catch (error) {
+        console.error("Saving workspace locally because cloud sync failed:", error);
+        if (seq === saveSeqRef.current && targetSpaceKey === activeSpaceRef.current) {
+          setWorkspace(localWorkspace);
+          setSaveState("local");
+        }
       }
     }, 550);
 
