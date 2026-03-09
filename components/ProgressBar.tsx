@@ -1,13 +1,13 @@
 "use client";
 
 function getMotivation(pct: number): string {
-  if (pct === 0)   return "Let's get started! 🚀";
-  if (pct < 20)   return "Great start — keep the momentum!";
+  if (pct === 0)   return "Start.";
+  if (pct < 20)   return "Keep going.";
   if (pct < 40)   return "You're making real progress.";
-  if (pct < 60)   return "Halfway there — don't slow down!";
-  if (pct < 80)   return "Over halfway — finish strong! 💪";
-  if (pct < 100)  return "Almost there — final push!";
-  return "Everything complete — incredible! 🎉";
+  if (pct < 60)   return "Hold the line.";
+  if (pct < 80)   return "Finish strong.";
+  if (pct < 100)  return "Almost there.";
+  return "Clear.";
 }
 
 interface ProgressBarProps {
@@ -19,7 +19,7 @@ export default function ProgressBar({ pct }: ProgressBarProps) {
 
   return (
     <div
-      className="glass rounded-2xl px-5 py-4 mb-8 animate-fadeDown"
+      className="glass rounded-2xl px-5 py-3.5 mb-8 animate-fadeDown"
       style={{ animationDelay: "0.12s" }}
     >
       <div className="flex justify-between items-baseline mb-3">

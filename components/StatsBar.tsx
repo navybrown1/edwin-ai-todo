@@ -39,7 +39,7 @@ export default function StatsBar({ total, remaining, done }: StatsBarProps) {
       {stats.map(({ num, label, numColor, borderGlow, icon, iconColor }) => (
         <div
           key={label}
-          className="glass rounded-2xl px-5 py-4 flex-1 min-w-[90px] text-center animate-fadeDown relative overflow-hidden"
+          className="glass rounded-2xl px-4 py-3.5 flex-1 min-w-[90px] text-center animate-fadeDown relative overflow-hidden"
           style={{ borderTopColor: borderGlow, borderTopWidth: "1px", borderTopStyle: "solid" }}
         >
           {/* Subtle top glow */}
@@ -48,10 +48,10 @@ export default function StatsBar({ total, remaining, done }: StatsBarProps) {
             style={{ background: `linear-gradient(90deg, transparent, ${borderGlow}, transparent)` }}
           />
           {/* Background icon */}
-          <div className={`absolute top-1.5 right-2.5 text-[1.8rem] font-bold leading-none select-none pointer-events-none ${iconColor}`}>
+          <div className={`absolute top-1.5 right-2.5 text-[1.5rem] font-bold leading-none select-none pointer-events-none ${iconColor}`}>
             {icon}
           </div>
-          <div className={`font-syne text-[2rem] font-extrabold leading-none ${numColor} relative z-10`}>
+          <div className={`font-syne text-[1.75rem] font-extrabold leading-none ${numColor} relative z-10`}>
             {num}
           </div>
           <div className="text-[10px] tracking-[0.12em] uppercase text-muted mt-1.5 font-dm relative z-10">

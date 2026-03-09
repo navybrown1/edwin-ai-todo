@@ -149,7 +149,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
           onFocus={() => setFocused(true)}
           onBlur={handleBlur}
           onKeyDown={(event) => event.key === "Enter" && handleAdd()}
-          placeholder="Add one task, or dump a messy thought for AI parsing..."
+          placeholder="Add a task or drop in a messy thought."
           className="flex-1 min-w-0 bg-surface border border-border rounded-[14px] px-4 py-3.5 text-textPrimary font-dm text-sm outline-none transition-all duration-300 placeholder:text-muted/55"
           style={
             focused
@@ -200,7 +200,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         >
           <div className="text-[11px] uppercase tracking-[0.12em] text-accent/90 font-dm mb-3 flex items-center gap-1.5">
             <span className="sparkle-icon inline-block">✦</span>
-            AI parsed {parsedTasks.length} task{parsedTasks.length > 1 ? "s" : ""} — confirm to add
+            {parsedTasks.length} task{parsedTasks.length > 1 ? "s" : ""} ready
           </div>
           <div className="flex flex-col gap-1.5 mb-3">
             {parsedTasks.map((task, index) => (
