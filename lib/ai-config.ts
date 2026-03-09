@@ -1,7 +1,7 @@
 import type { GeminiModelId, ThemeMode } from "@/types";
 
-export const APP_NAME = "Above";
-export const DEFAULT_SPACE_TITLE = "Above Board";
+export const APP_NAME = "My Day Guide Pro";
+export const DEFAULT_SPACE_TITLE = "My Day";
 export const DEFAULT_GEMINI_MODEL: GeminiModelId = "gemini-2.5-flash";
 export const DEFAULT_THEME_MODE: ThemeMode = "dark";
 

@@ -2,7 +2,7 @@
 
 import { APP_NAME } from "@/lib/ai-config";
 import type { AiResponseMeta, GeminiModelId, Task } from "@/types";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface AiPanelProps {
   tasks: Task[];
@@ -52,11 +52,6 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [monthLabel, setMonthLabel] = useState("");
-
-  useEffect(() => {
-    setMonthLabel(new Date().toLocaleString("en-US", { month: "long", year: "numeric" }));
-  }, []);
 
   const generateBriefing = async () => {
     try {
@@ -91,9 +86,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
               </svg>
             </div>
             <div>
-              <span className="block text-xs font-syne font-bold tracking-[0.1em] uppercase text-muted/90">
-                {APP_NAME} {monthLabel}
-              </span>
+              <span className="block text-xs font-syne font-bold tracking-[0.1em] uppercase text-muted/90">{APP_NAME}</span>
               <span className="block text-[11px] text-muted font-dm">A clear read on what matters next.</span>
             </div>
           </div>

@@ -13,7 +13,7 @@ export async function ensureSchema(): Promise<void> {
         CREATE TABLE IF NOT EXISTS spaces (
           id SERIAL PRIMARY KEY,
           space_key VARCHAR(64) UNIQUE NOT NULL,
-          title VARCHAR(120) NOT NULL DEFAULT 'Above Board',
+          title VARCHAR(120) NOT NULL DEFAULT 'My Day',
           memory TEXT NOT NULL DEFAULT '',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -41,14 +41,14 @@ export async function ensureSchema(): Promise<void> {
       `;
 
       await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS space_key VARCHAR(64) NOT NULL DEFAULT 'default'`;
-      await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS title VARCHAR(120) NOT NULL DEFAULT 'Above Board'`;
-      await sql`ALTER TABLE spaces ALTER COLUMN title SET DEFAULT 'Above Board'`;
+      await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS title VARCHAR(120) NOT NULL DEFAULT 'My Day'`;
+      await sql`ALTER TABLE spaces ALTER COLUMN title SET DEFAULT 'My Day'`;
       await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS memory TEXT NOT NULL DEFAULT ''`;
       await sql`ALTER TABLE spaces ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`;
 
       await sql`
         INSERT INTO spaces (space_key, title, memory)
-        VALUES ('default', 'Above Board', '')
+        VALUES ('default', 'My Day', '')
         ON CONFLICT (space_key) DO NOTHING
       `;
 

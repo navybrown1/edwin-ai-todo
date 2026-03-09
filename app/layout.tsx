@@ -20,7 +20,7 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   title: APP_NAME,
-  description: `${APP_NAME} is a personal AI task board.`,
+  description: `${APP_NAME} keeps the day moving.`,
 };
 
 export default function RootLayout({
