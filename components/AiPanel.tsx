@@ -69,10 +69,12 @@ export default function AiPanel({ tasks }: AiPanelProps) {
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[rgba(255,255,255,0.06)]">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-6 h-6 rounded-lg flex items-center justify-center"
-              style={{ background: "rgba(240,192,64,0.12)", border: "1px solid rgba(240,192,64,0.22)" }}
+              className="ai-orb w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: "rgba(240,192,64,0.10)", border: "1px solid rgba(240,192,64,0.22)" }}
             >
-              <span className="sparkle-icon inline-block text-accent text-xs">✦</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path className="logo-star" d="M12 2L14.09 9.26L21.41 11.27L14.09 13.28L12 20.54L9.91 13.28L2.59 11.27L9.91 9.26L12 2Z" fill="#f0c040" />
+              </svg>
             </div>
             <span className="text-xs font-syne font-bold tracking-[0.1em] uppercase text-muted/80">
               Daily Brief

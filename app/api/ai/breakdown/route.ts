@@ -35,7 +35,12 @@ Rules:
 
     return NextResponse.json({ steps });
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isRateLimit = msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota");
     console.error("AI breakdown error:", err);
-    return NextResponse.json({ error: "Failed to break down task" }, { status: 500 });
+    return NextResponse.json(
+      { error: isRateLimit ? "Rate limited — wait 30s and retry" : "Failed to break down task" },
+      { status: isRateLimit ? 429 : 500 }
+    );
   }
 }

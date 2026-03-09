@@ -169,8 +169,9 @@ export default function Home() {
           : t
       ));
       toastTimer(`✦ ${created.length} steps added by AI`, "ai");
-    } catch {
-      toastTimer("AI breakdown failed", "error");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "AI breakdown failed";
+      toastTimer(msg.includes("Rate") ? "⏱ Rate limited — wait 30s" : "AI breakdown failed", "error");
     } finally {
       setBreakingTaskId(null);
     }
@@ -216,6 +217,10 @@ export default function Home() {
 
   return (
     <main className="relative z-10 max-w-[680px] mx-auto px-5 py-10 pb-20">
+      {/* Floating background blobs for depth */}
+      <div className="blob blob-1" style={{ width: 400, height: 400, top: "-10%", left: "-15%", background: "rgba(240,192,64,0.055)" }} />
+      <div className="blob blob-2" style={{ width: 350, height: 350, top: "40%", right: "-20%", background: "rgba(6,182,212,0.04)" }} />
+      <div className="blob blob-3" style={{ width: 300, height: 300, bottom: "5%", left: "10%", background: "rgba(139,92,246,0.03)" }} />
       <Header />
 
       <StatsBar total={total} remaining={remaining} done={done} />
@@ -233,10 +238,40 @@ export default function Home() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-muted text-sm font-dm">
-          {filter === "done" ? "Nothing completed yet — keep going!" :
-           filter === "active" ? "All caught up! 🎉" :
-           "No tasks yet. Add one above."}
+        <div className="text-center py-12 flex flex-col items-center gap-4">
+          {filter === "done" ? (
+            <>
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-30">
+                <circle cx="32" cy="32" r="28" stroke="#f0c040" strokeWidth="1.5" strokeDasharray="4 3" />
+                <path d="M20 32L28 40L44 24" stroke="#f0c040" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
+              </svg>
+              <p className="text-muted/60 text-sm font-dm">Nothing completed yet — keep going!</p>
+            </>
+          ) : filter === "active" ? (
+            <>
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-40">
+                <circle cx="32" cy="32" r="28" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.4)" strokeWidth="1.5" />
+                <path d="M20 32L28 40L44 24" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke-dasharray" values="0,30;30,0" dur="0.6s" fill="freeze" />
+                </path>
+              </svg>
+              <p className="text-emerald-400/60 text-sm font-dm font-medium">All caught up! 🎉</p>
+              <p className="text-muted/40 text-xs font-dm">Every active task is done.</p>
+            </>
+          ) : (
+            <>
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-30">
+                <rect x="14" y="18" width="36" height="30" rx="4" stroke="#f0c040" strokeWidth="1.5" />
+                <path d="M14 26H50" stroke="#f0c040" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M22 34H34" stroke="#f0c040" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M22 40H30" stroke="#f0c040" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="32" cy="12" r="3" fill="#f0c040" opacity="0.6" />
+                <path d="M29 12H35" stroke="#f0c040" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <p className="text-muted/60 text-sm font-dm">No tasks yet.</p>
+              <p className="text-muted/40 text-xs font-dm">Add one above or use ✦ AI Parse to get started.</p>
+            </>
+          )}
         </div>
       ) : (
         <div>
@@ -266,23 +301,23 @@ export default function Home() {
         <div className="mt-8 flex gap-2.5 flex-wrap animate-fadeUp" style={{ animationDelay: "0.3s" }}>
           <button
             onClick={markAllDone}
-            className="bg-surface border border-border rounded-lg px-4 py-2 text-xs font-dm text-muted
-              hover:text-textPrimary hover:border-[#4a4a5a] transition-all duration-200"
+            className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted
+              hover:text-emerald-400 hover:border-emerald-400/20 transition-all duration-200 hover:-translate-y-[1px]"
           >
             ✓ Complete All
           </button>
           <button
             onClick={resetAll}
-            className="bg-surface border border-border rounded-lg px-4 py-2 text-xs font-dm text-muted
-              hover:text-textPrimary hover:border-[#4a4a5a] transition-all duration-200"
+            className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted
+              hover:text-textPrimary hover:border-[rgba(255,255,255,0.12)] transition-all duration-200 hover:-translate-y-[1px]"
           >
             ↺ Reset All
           </button>
           {done > 0 && (
             <button
               onClick={clearDone}
-              className="bg-surface border border-border rounded-lg px-4 py-2 text-xs font-dm text-muted
-                hover:text-[#ff5555] hover:border-[#ff5555] transition-all duration-200"
+              className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted
+                hover:text-[#f87171] hover:border-[rgba(239,68,68,0.25)] transition-all duration-200 hover:-translate-y-[1px]"
             >
               ✕ Clear Completed
             </button>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Edwin's AI To-Do",
-  description: "AI-powered personal task manager — Edwin Brown",
+  title: "Nova — AI Task Manager",
+  description: "AI-powered task manager with natural language input, smart categorization, and daily briefings.",
 };
 
 export default function RootLayout({
