@@ -19,8 +19,8 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} — Mood-Driven AI Task Board`,
-  description: `${APP_NAME} is a personal AI task board with animated themes, persistent notes, and Gemini fallback.`,
+  title: APP_NAME,
+  description: `${APP_NAME} is a personal AI task board.`,
 };
 
 export default function RootLayout({

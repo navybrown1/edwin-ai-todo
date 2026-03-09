@@ -25,7 +25,7 @@ function getSaveLabel(saveState: SaveState) {
   if (saveState === "saving") return "Syncing";
   if (saveState === "saved") return "Saved";
   if (saveState === "error") return "Retrying";
-  return "Live";
+  return "Ready";
 }
 
 function ModeIllustration({ id, large = false }: { id: ThemeMode; large?: boolean }) {
@@ -102,7 +102,7 @@ export default function SpacePanel({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-accent/75 font-dm mb-2">Board</p>
-              <h2 className="font-syne text-[1.6rem] leading-none text-textPrimary">Set the tone</h2>
+              <h2 className="font-syne text-[1.6rem] leading-none text-textPrimary">Above</h2>
             </div>
             <div className="rounded-full border border-border bg-surface2/70 px-3 py-1.5 text-[11px] text-muted font-dm">
               {getSaveLabel(saveState)}
@@ -124,7 +124,7 @@ export default function SpacePanel({
             <textarea
               value={memory}
               onChange={(event) => onMemoryChange(event.target.value)}
-              placeholder="Deadlines, priorities, energy level, shopping list chaos, or anything the AI should keep in mind."
+              placeholder="Deadlines, priorities, or anything to remember."
               rows={5}
               className="w-full resize-none rounded-[24px] border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-textPrimary outline-none transition-all duration-200 focus:border-accent/55 focus:shadow-glowSm"
             />
@@ -153,10 +153,8 @@ export default function SpacePanel({
           <div className="mode-stage glass-subtle relative overflow-hidden rounded-[28px] p-5">
             <div className="relative z-10 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-accent/75 font-dm">Current Vibe</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-accent/75 font-dm">Mode</p>
                 <h3 className="mt-2 font-syne text-[1.7rem] font-bold text-textPrimary">{activeTheme.label}</h3>
-                <p className="mt-1 text-sm text-accent/90 font-dm">{activeTheme.vibe}</p>
-                <p className="mt-3 max-w-[20rem] text-sm leading-relaxed text-muted font-dm">{activeTheme.description}</p>
               </div>
               <div className="mode-stage-figure">
                 <ModeIllustration id={themeMode} large />
@@ -182,8 +180,6 @@ export default function SpacePanel({
                   <div className="relative z-10 flex items-start justify-between gap-3">
                     <div>
                       <p className="font-syne text-lg font-bold text-textPrimary">{theme.label}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-accent/80 font-dm">{theme.vibe}</p>
-                      <p className="mt-3 text-sm leading-relaxed text-muted font-dm">{theme.description}</p>
                     </div>
                     <div className="mode-card-figure">
                       <ModeIllustration id={theme.id} />

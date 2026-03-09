@@ -22,48 +22,50 @@ export function useWorkspace(spaceKey: string | null, options: UseWorkspaceOptio
   const loadRequestRef = useRef(0);
   const saveSeqRef = useRef(0);
   const activeSpaceRef = useRef<string | null>(spaceKey);
+  const onLoadErrorRef = useRef(onLoadError);
 
   useEffect(() => {
     activeSpaceRef.current = spaceKey;
   }, [spaceKey]);
 
-  const loadWorkspace = useCallback(
-    async (nextSpaceKey: string) => {
-      const requestId = ++loadRequestRef.current;
-      setLoadingWorkspace(true);
+  useEffect(() => {
+    onLoadErrorRef.current = onLoadError;
+  }, [onLoadError]);
 
-      try {
-        const res = await fetch(withSpaceKey("/api/space", nextSpaceKey), { cache: "no-store" });
-        const data = await res.json();
+  const loadWorkspace = useCallback(async (nextSpaceKey: string) => {
+    const requestId = ++loadRequestRef.current;
+    setLoadingWorkspace(true);
 
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to load space");
-        }
+    try {
+      const res = await fetch(withSpaceKey("/api/space", nextSpaceKey), { cache: "no-store" });
+      const data = await res.json();
 
-        if (requestId !== loadRequestRef.current) {
-          return;
-        }
-
-        hydrationRef.current = true;
-        setWorkspace(data);
-        setTitle(normalizeBoardTitle(data.title));
-        setMemory(data.memory || "");
-        setSaveState("idle");
-      } catch (error) {
-        if (requestId !== loadRequestRef.current) {
-          return;
-        }
-
-        console.error("Failed to load workspace:", error);
-        onLoadError?.();
-      } finally {
-        if (requestId === loadRequestRef.current) {
-          setLoadingWorkspace(false);
-        }
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load space");
       }
-    },
-    [onLoadError],
-  );
+
+      if (requestId !== loadRequestRef.current) {
+        return;
+      }
+
+      hydrationRef.current = true;
+      setWorkspace(data);
+      setTitle(normalizeBoardTitle(data.title));
+      setMemory(data.memory || "");
+      setSaveState("idle");
+    } catch (error) {
+      if (requestId !== loadRequestRef.current) {
+        return;
+      }
+
+      console.error("Failed to load workspace:", error);
+      onLoadErrorRef.current?.();
+    } finally {
+      if (requestId === loadRequestRef.current) {
+        setLoadingWorkspace(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!spaceKey) return;

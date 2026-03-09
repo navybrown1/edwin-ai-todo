@@ -16,44 +16,51 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const loadRequestRef = useRef(0);
   const tasksRef = useRef<Task[]>([]);
+  const notifyRef = useRef(notify);
+  const onLoadErrorRef = useRef(onLoadError);
 
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
 
-  const loadTasks = useCallback(
-    async (nextSpaceKey: string) => {
-      const requestId = ++loadRequestRef.current;
-      setLoadingTasks(true);
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
-      try {
-        const res = await fetch(withSpaceKey("/api/tasks", nextSpaceKey), { cache: "no-store" });
-        const data = await res.json();
+  useEffect(() => {
+    onLoadErrorRef.current = onLoadError;
+  }, [onLoadError]);
 
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to load tasks");
-        }
+  const loadTasks = useCallback(async (nextSpaceKey: string) => {
+    const requestId = ++loadRequestRef.current;
+    setLoadingTasks(true);
 
-        if (requestId !== loadRequestRef.current) {
-          return;
-        }
+    try {
+      const res = await fetch(withSpaceKey("/api/tasks", nextSpaceKey), { cache: "no-store" });
+      const data = await res.json();
 
-        setTasks(Array.isArray(data) ? data : []);
-      } catch (error) {
-        if (requestId !== loadRequestRef.current) {
-          return;
-        }
-
-        console.error("Failed to load tasks:", error);
-        onLoadError?.();
-      } finally {
-        if (requestId === loadRequestRef.current) {
-          setLoadingTasks(false);
-        }
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load tasks");
       }
-    },
-    [onLoadError],
-  );
+
+      if (requestId !== loadRequestRef.current) {
+        return;
+      }
+
+      setTasks(Array.isArray(data) ? data : []);
+    } catch (error) {
+      if (requestId !== loadRequestRef.current) {
+        return;
+      }
+
+      console.error("Failed to load tasks:", error);
+      onLoadErrorRef.current?.();
+    } finally {
+      if (requestId === loadRequestRef.current) {
+        setLoadingTasks(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!spaceKey) return;
@@ -82,13 +89,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
         }
 
         setTasks((prev) => [...prev, task]);
-        notify("Task added", "success");
+        notifyRef.current("Task added", "success");
       } catch (error) {
         console.error("Failed to add task:", error);
-        notify("Failed to add task", "error");
+        notifyRef.current("Failed to add task", "error");
       }
     },
-    [notify, spaceKey],
+    [spaceKey],
   );
 
   const addTasksBulk = useCallback(
@@ -110,16 +117,16 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
         setTasks((prev) => [...prev, ...data]);
 
         if (meta) {
-          notify(`${data.length} tasks added via ${describeAiUsage(meta)}`, "ai");
+          notifyRef.current(`${data.length} tasks added via ${describeAiUsage(meta)}`, "ai");
         } else {
-          notify(`${data.length} tasks added by AI`, "ai");
+          notifyRef.current(`${data.length} tasks added by AI`, "ai");
         }
       } catch (error) {
         console.error("Failed to add parsed tasks:", error);
-        notify("Failed to add AI tasks", "error");
+        notifyRef.current("Failed to add AI tasks", "error");
       }
     },
-    [notify, spaceKey],
+    [spaceKey],
   );
 
   const toggleTask = useCallback(
@@ -143,14 +150,14 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
           throw new Error("Failed to update task");
         }
 
-        notify(nextDone ? "Task completed" : "Task reopened");
+        notifyRef.current(nextDone ? "Task completed" : "Task reopened");
       } catch (error) {
         console.error("Failed to toggle task:", error);
         setTasks((prev) => prev.map((item) => (item.id === id ? { ...item, done: task.done } : item)));
-        notify("Task update failed", "error");
+        notifyRef.current("Task update failed", "error");
       }
     },
-    [notify, spaceKey],
+    [spaceKey],
   );
 
   const deleteTask = useCallback(
@@ -167,14 +174,14 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
           throw new Error("Failed to delete task");
         }
 
-        notify("Task deleted");
+        notifyRef.current("Task deleted");
       } catch (error) {
         console.error("Failed to delete task:", error);
         setTasks(previous);
-        notify("Failed to delete task", "error");
+        notifyRef.current("Failed to delete task", "error");
       }
     },
-    [notify, spaceKey],
+    [spaceKey],
   );
 
   const toggleSubtask = useCallback(
@@ -259,13 +266,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
         throw new Error("Failed to complete tasks");
       }
 
-      notify("All tasks completed");
+      notifyRef.current("All tasks completed");
     } catch (error) {
       console.error("Failed to complete all tasks:", error);
       void loadTasks(spaceKey);
-      notify("Bulk update failed", "error");
+      notifyRef.current("Bulk update failed", "error");
     }
-  }, [loadTasks, notify, spaceKey]);
+  }, [loadTasks, spaceKey]);
 
   const resetAll = useCallback(async () => {
     if (!spaceKey) return;
@@ -290,13 +297,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
         throw new Error("Failed to reset tasks");
       }
 
-      notify("All tasks reset");
+      notifyRef.current("All tasks reset");
     } catch (error) {
       console.error("Failed to reset all tasks:", error);
       void loadTasks(spaceKey);
-      notify("Bulk reset failed", "error");
+      notifyRef.current("Bulk reset failed", "error");
     }
-  }, [loadTasks, notify, spaceKey]);
+  }, [loadTasks, spaceKey]);
 
   const clearDone = useCallback(async () => {
     if (!spaceKey) return;
@@ -320,13 +327,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
         throw new Error("Failed to delete tasks");
       }
 
-      notify(`${doneTasks.length} completed tasks cleared`);
+      notifyRef.current(`${doneTasks.length} completed tasks cleared`);
     } catch (error) {
       console.error("Failed to clear completed tasks:", error);
       void loadTasks(spaceKey);
-      notify("Failed to clear completed tasks", "error");
+      notifyRef.current("Failed to clear completed tasks", "error");
     }
-  }, [loadTasks, notify, spaceKey]);
+  }, [loadTasks, spaceKey]);
 
   return {
     addSubtasksBulk,

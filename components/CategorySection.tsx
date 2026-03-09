@@ -56,6 +56,7 @@ export default function CategorySection({
       <div
         className="flex items-center gap-2.5 mb-3 cursor-pointer select-none group/header"
         onClick={() => setCollapsed(!collapsed)}
+        aria-expanded={!collapsed}
       >
         {/* Colored emoji icon */}
         <div
@@ -113,26 +114,23 @@ export default function CategorySection({
         </span>
       </div>
 
-      {/* Animated task list */}
-      <div className={`category-tasks ${collapsed ? "collapsed" : "expanded"}`}>
-        <div className="tasks-inner">
-          <div className="flex flex-col gap-1.5 pt-0.5">
-            {tasks.map((t, ti) => (
-              <TaskItem
-                key={t.id}
-                task={t}
-                catColor={color}
-                animDelay={`${ti * 0.03}s`}
-                onToggle={onToggle}
-                onDelete={onDelete}
-                onSubtaskToggle={onSubtaskToggle}
-                onBreakdown={onBreakdown}
-                isBreaking={breakingTaskId === t.id}
-              />
-            ))}
-          </div>
+      {!collapsed && (
+        <div className="flex flex-col gap-1.5 pt-0.5">
+          {tasks.map((t, ti) => (
+            <TaskItem
+              key={t.id}
+              task={t}
+              catColor={color}
+              animDelay={`${ti * 0.03}s`}
+              onToggle={onToggle}
+              onDelete={onDelete}
+              onSubtaskToggle={onSubtaskToggle}
+              onBreakdown={onBreakdown}
+              isBreaking={breakingTaskId === t.id}
+            />
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

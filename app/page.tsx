@@ -27,6 +27,7 @@ export default function Home() {
   const { toast, showToast } = useToast();
   const { bootingSpace, getRecoveryLink, spaceKey, startFreshSpace } = useSpaceSession();
   const { themeMode, setThemeMode, primaryModel, setPrimaryModel } = useLocalPreferences();
+  const handleLoadError = useCallback(() => showToast("Failed to load this private list", "error"), [showToast]);
   const {
     loadingWorkspace,
     memory,
@@ -36,7 +37,7 @@ export default function Home() {
     setTitle,
     title,
   } = useWorkspace(spaceKey, {
-    onLoadError: () => showToast("Failed to load this private list", "error"),
+    onLoadError: handleLoadError,
   });
   const {
     addSubtasksBulk,
@@ -53,7 +54,7 @@ export default function Home() {
     toggleTask,
   } = useTasks(spaceKey, {
     notify: showToast,
-    onLoadError: () => showToast("Failed to load this private list", "error"),
+    onLoadError: handleLoadError,
   });
   const { breakingTaskId, handleBreakdown, lastAiMeta, recordAiMeta, setLastAiMeta } = useAiActions(spaceKey, primaryModel, {
     notify: showToast,
@@ -157,7 +158,7 @@ export default function Home() {
 
       <FilterTabs active={filter} onChange={setFilter} />
 
-      {loading ? (
+      {loading && tasks.length === 0 ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, index) => (
             <div key={index} className="h-12 rounded-[12px] ai-shimmer" style={{ width: `${85 - index * 5}%` }} />
