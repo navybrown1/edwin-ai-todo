@@ -73,7 +73,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
   };
 
   return (
-    <div className="mt-8 animate-fadeUp" style={{ animationDelay: "0.3s" }}>
+    <div className="animate-fadeUp" style={{ animationDelay: "0.3s" }}>
       <div className="glass rounded-[24px] overflow-hidden">
         <div className="flex flex-col gap-3 px-5 py-4 border-b border-border/70 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
             <button
               onClick={generateBriefing}
               disabled={loading}
-              className="sparkle-hover bg-accent text-bg text-xs font-syne font-bold px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px hover:shadow-glowSm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              className="sparkle-hover bg-accent text-bg text-xs font-syne font-bold px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px hover:shadow-glowSm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
             >
               {loading ? "Thinking..." : "Plan It"}
             </button>

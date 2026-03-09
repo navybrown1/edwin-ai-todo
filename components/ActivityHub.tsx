@@ -109,21 +109,21 @@ export default function ActivityHub() {
             <button
               onClick={() => goToMonth(-1)}
               aria-label="Previous month"
-              className="activity-hub-control"
+              className="activity-hub-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
             >
               <Chevron direction="left" />
             </button>
             <button
               onClick={jumpToToday}
               aria-label="Today"
-              className="activity-hub-control"
+              className="activity-hub-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
             >
               <TodayIcon />
             </button>
             <button
               onClick={() => goToMonth(1)}
               aria-label="Next month"
-              className="activity-hub-control"
+              className="activity-hub-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
             >
               <Chevron direction="right" />
             </button>
@@ -154,7 +154,7 @@ export default function ActivityHub() {
                       setMonthCursor(new Date(day.getFullYear(), day.getMonth(), 1));
                     }
                   }}
-                  className={`calendar-day ${isSelected ? "calendar-day-selected" : ""} ${isToday ? "calendar-day-today" : ""} ${
+                  className={`calendar-day focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 ${isSelected ? "calendar-day-selected" : ""} ${isToday ? "calendar-day-today" : ""} ${
                     inMonth ? "calendar-day-current" : "calendar-day-faded"
                   }`}
                   aria-label={day.toDateString()}

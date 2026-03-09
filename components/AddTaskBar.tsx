@@ -141,7 +141,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
   };
 
   return (
-    <div className="mb-8 animate-fadeDown" style={{ animationDelay: "0.2s" }}>
+    <div className="glass rounded-[28px] p-4 sm:p-5 animate-fadeDown" style={{ animationDelay: "0.2s" }}>
       <div className="flex gap-2.5 flex-wrap sm:flex-nowrap">
         <input
           value={text}
@@ -150,7 +150,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
           onBlur={handleBlur}
           onKeyDown={(event) => event.key === "Enter" && handleAdd()}
           placeholder="Add a task or drop in a messy thought."
-          className="flex-1 min-w-0 bg-surface border border-border rounded-[14px] px-4 py-3.5 text-textPrimary font-dm text-sm outline-none transition-all duration-300 placeholder:text-muted/55"
+          className="flex-1 min-w-0 bg-surface border border-border rounded-[18px] px-4 py-3.5 text-textPrimary font-dm text-sm outline-none transition-all duration-300 placeholder:text-muted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
           style={
             focused
               ? {
@@ -164,7 +164,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         <select
           value={cat}
           onChange={(event) => setCat(event.target.value)}
-          className={`bg-surface border rounded-[14px] px-3 py-3.5 text-textPrimary font-dm text-sm outline-none cursor-pointer transition-all duration-300 focus:border-accent/50 ${
+          className={`bg-surface border rounded-[18px] px-3 py-3.5 text-textPrimary font-dm text-sm outline-none cursor-pointer transition-all duration-300 focus:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
             categorizing ? "border-accent/60 animate-pulse" : "border-border"
           }`}
         >
@@ -178,7 +178,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         <button
           onClick={handleAiParse}
           disabled={parsing || !text.trim()}
-          className="sparkle-hover bg-surface border border-accent/30 text-accent rounded-[14px] px-4 py-3.5 font-syne font-bold text-xs whitespace-nowrap transition-all duration-200 hover:bg-accent/10 hover:border-accent/60 hover:-translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="sparkle-hover bg-surface border border-accent/30 text-accent rounded-[18px] px-4 py-3.5 font-syne font-bold text-xs whitespace-nowrap transition-all duration-200 hover:bg-accent/10 hover:border-accent/60 hover:-translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
         >
           <span className={`sparkle-icon inline-block mr-1 ${parsing ? "animate-pulse" : ""}`}>✦</span>
           {parsing ? "AI..." : "AI Parse"}
@@ -187,7 +187,7 @@ export default function AddTaskBar({ spaceKey, primaryModel, onAdd, onAiParse, o
         <button
           onClick={handleAdd}
           disabled={!text.trim()}
-          className="bg-accent text-bg rounded-[14px] px-5 py-3.5 font-syne font-bold text-sm whitespace-nowrap transition-all duration-200 hover:-translate-y-[2px] hover:shadow-glow active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="bg-accent text-bg rounded-[18px] px-5 py-3.5 font-syne font-bold text-sm whitespace-nowrap transition-all duration-200 hover:-translate-y-[2px] hover:shadow-glow active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
         >
           + Add
         </button>

@@ -19,7 +19,7 @@ export default function ProgressBar({ pct }: ProgressBarProps) {
 
   return (
     <div
-      className="glass rounded-2xl px-5 py-3.5 mb-8 animate-fadeDown"
+      className="glass rounded-[24px] px-5 py-4 animate-fadeDown"
       style={{ animationDelay: "0.12s" }}
     >
       <div className="flex justify-between items-baseline mb-3">

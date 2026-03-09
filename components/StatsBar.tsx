@@ -35,11 +35,11 @@ export default function StatsBar({ total, remaining, done }: StatsBarProps) {
   ];
 
   return (
-    <div className="flex gap-4 mb-8 flex-wrap" style={{ animationDelay: "0.1s" }}>
+    <div className="grid gap-4 sm:grid-cols-3" style={{ animationDelay: "0.1s" }}>
       {stats.map(({ num, label, numColor, borderGlow, icon, iconColor }) => (
         <div
           key={label}
-          className="glass rounded-2xl px-4 py-3.5 flex-1 min-w-[90px] text-center animate-fadeDown relative overflow-hidden"
+          className="glass rounded-2xl px-4 py-3.5 text-center animate-fadeDown relative overflow-hidden"
           style={{ borderTopColor: borderGlow, borderTopWidth: "1px", borderTopStyle: "solid" }}
         >
           {/* Subtle top glow */}
