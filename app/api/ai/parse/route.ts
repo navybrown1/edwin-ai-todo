@@ -29,10 +29,11 @@ Rules:
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim();
 
-    // Strip any markdown code fences if present
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/, "").trim();
-
-    const tasks = JSON.parse(cleaned);
+    // Robustly extract JSON array from anywhere in the response
+    const start = raw.indexOf("[");
+    const end = raw.lastIndexOf("]");
+    if (start === -1 || end === -1) throw new Error("No JSON array in response");
+    const tasks = JSON.parse(raw.substring(start, end + 1));
     if (!Array.isArray(tasks)) throw new Error("Expected array");
 
     return NextResponse.json(tasks);

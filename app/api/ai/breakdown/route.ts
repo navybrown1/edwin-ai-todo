@@ -25,9 +25,12 @@ Rules:
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim();
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/, "").trim();
 
-    const steps = JSON.parse(cleaned);
+    // Robustly extract JSON array from anywhere in the response
+    const start = raw.indexOf("[");
+    const end = raw.lastIndexOf("]");
+    if (start === -1 || end === -1) throw new Error("No JSON array in response");
+    const steps = JSON.parse(raw.substring(start, end + 1));
     if (!Array.isArray(steps)) throw new Error("Expected array");
 
     return NextResponse.json({ steps });
