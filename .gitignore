@@ -9,6 +9,10 @@
 
 # next.js
 /.next/
+/.next-dev/
+/.next-build/
+.next.stale.*/
+.next*.archived.*/
 /out/
 
 # production

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { localSpaceHasTasks } from "@/lib/local-store";
 import { createSpaceKey, sanitizeSpaceKey } from "@/lib/space-utils";
 
 const ACTIVE_SPACE_STORAGE_KEY = "nova.active-space-key";
@@ -13,13 +14,7 @@ function syncSpaceUrl(nextSpaceKey: string) {
 }
 
 async function spaceHasTasks(spaceKey: string) {
-  const res = await fetch(`/api/tasks?spaceKey=${encodeURIComponent(spaceKey)}`, { cache: "no-store" });
-  if (!res.ok) {
-    return false;
-  }
-
-  const data = await res.json();
-  return Array.isArray(data) && data.length > 0;
+  return localSpaceHasTasks(spaceKey);
 }
 
 export function useSpaceSession() {

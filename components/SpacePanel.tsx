@@ -1,11 +1,12 @@
 "use client";
 
 import ActivityHub from "@/components/ActivityHub";
+import PlannerControlPanel from "@/components/PlannerControlPanel";
 import { APP_NAME, GEMINI_MODELS, getThemeOption, THEME_OPTIONS } from "@/lib/ai-config";
 import type { CSSProperties, ReactNode } from "react";
 import type { GeminiModelId, ThemeMode } from "@/types";
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+type SaveState = "idle" | "saving" | "saved" | "error" | "local";
 
 interface SpacePanelProps {
   spaceKey: string;
@@ -26,6 +27,7 @@ interface SpacePanelProps {
 function getSaveLabel(saveState: SaveState) {
   if (saveState === "saving") return "Syncing";
   if (saveState === "saved") return "Saved";
+  if (saveState === "local") return "Local";
   if (saveState === "error") return "Retrying";
   return "Ready";
 }
@@ -326,6 +328,7 @@ export default function SpacePanel({
 
         <aside className="space-y-4">
           <ActivityHub spaceKey={spaceKey} themeMode={themeMode} remainingTasks={remainingTasks} />
+          <PlannerControlPanel spaceKey={spaceKey} />
 
           <div className="rounded-[28px] border border-border bg-surface/75 p-5 shadow-card">
             <LabelRow

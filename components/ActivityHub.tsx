@@ -1,18 +1,13 @@
 "use client";
 
 import { getThemeOption } from "@/lib/ai-config";
-import type { ThemeMode } from "@/types";
+import { createLocalPlannerEvent, loadLocalPlannerEvents, saveLocalPlannerEvents } from "@/lib/local-store";
+import type { PlannerEvent, ThemeMode } from "@/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export interface CalendarEvent {
-  id: string;
-  date: string; // YYYY-MM-DD
-  text: string;
-  color: string;
-  time?: string; // HH:MM
-}
+type CalendarEvent = PlannerEvent;
 
 const EVENT_COLORS = [
   "#f0c040",
@@ -74,8 +69,12 @@ function formatEventTime(time?: string) {
   });
 }
 
-function getEventsStorageKey(spaceKey: string) {
-  return `nova.events.${spaceKey}`;
+function toScheduledAt(date: string, time?: string) {
+  if (!time) return null;
+
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
+  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
 }
 
 function Chevron({ direction }: { direction: "left" | "right" }) {
@@ -165,27 +164,24 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
     [activeTheme.accent],
   );
 
-  // Load events from localStorage
-  useEffect(() => {
+  const loadEvents = useCallback(async () => {
     if (!spaceKey) return;
-    try {
-      const raw = localStorage.getItem(getEventsStorageKey(spaceKey));
-      if (raw) setEvents((JSON.parse(raw) as CalendarEvent[]).sort(sortEvents));
-    } catch { /* ignore */ }
+
+    setEvents(loadLocalPlannerEvents(spaceKey).sort(sortEvents));
   }, [spaceKey]);
 
-  // Save events to localStorage
-  const saveEvents = useCallback((updated: CalendarEvent[]) => {
-    const sorted = [...updated].sort(sortEvents);
-    setEvents(sorted);
-    if (spaceKey) {
-      try {
-        localStorage.setItem(getEventsStorageKey(spaceKey), JSON.stringify(sorted));
-      } catch {
-        // Keep the UI responsive if storage is unavailable.
-      }
-    }
-  }, [spaceKey]);
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void loadEvents();
+    };
+
+    window.addEventListener("planner-events-refresh", handleRefresh);
+    return () => window.removeEventListener("planner-events-refresh", handleRefresh);
+  }, [loadEvents]);
 
   useEffect(() => {
     if (!showForm && !editingEventId) {
@@ -288,40 +284,49 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
     setNewEventColor(event.color);
   };
 
-  const submitEvent = () => {
+  const submitEvent = async () => {
     if (!newEventText.trim()) return;
 
     if (editingEventId) {
-      saveEvents(
-        events.map((event) =>
+      const nextEvents = events
+        .map((event) =>
           event.id === editingEventId
             ? {
                 ...event,
+                color: newEventColor,
                 date: selectedDateKey,
+                scheduledAt: toScheduledAt(selectedDateKey, newEventTime || undefined),
                 text: newEventText.trim(),
                 time: newEventTime || undefined,
-                color: newEventColor,
+                updated_at: new Date().toISOString(),
               }
             : event,
-        ),
-      );
+        )
+        .sort(sortEvents);
+
+      saveLocalPlannerEvents(spaceKey, nextEvents);
+      setEvents(nextEvents);
       resetComposer();
       return;
     }
 
-    const event: CalendarEvent = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      date: selectedDateKey,
-      text: newEventText.trim(),
+    const nextEvent = createLocalPlannerEvent(spaceKey, {
       color: newEventColor,
+      date: selectedDateKey,
+      scheduledAt: toScheduledAt(selectedDateKey, newEventTime || undefined),
+      text: newEventText.trim(),
       time: newEventTime || undefined,
-    };
-    saveEvents([...events, event]);
+    });
+    const nextEvents = [...events, nextEvent].sort(sortEvents);
+    saveLocalPlannerEvents(spaceKey, nextEvents);
+    setEvents(nextEvents);
     resetComposer();
   };
 
-  const deleteEvent = (id: string) => {
-    saveEvents(events.filter((e) => e.id !== id));
+  const deleteEvent = async (id: string) => {
+    const nextEvents = events.filter((event) => event.id !== id);
+    saveLocalPlannerEvents(spaceKey, nextEvents);
+    setEvents(nextEvents);
   };
 
   return (

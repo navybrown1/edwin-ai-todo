@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { describeAiUsage, withSpaceKey } from "@/lib/client-utils";
+import { describeAiUsage } from "@/lib/client-utils";
+import { createLocalTask, loadLocalTasks, nextLocalSubtaskId, saveLocalTasks } from "@/lib/local-store";
 import type { AiResponseMeta, ParsedTask, Subtask, Task } from "@/types";
 import type { ToastType } from "@/hooks/useToast";
 
@@ -14,10 +15,9 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
   const { notify, onLoadError } = options;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
-  const loadRequestRef = useRef(0);
   const tasksRef = useRef<Task[]>([]);
   const notifyRef = useRef(notify);
-  const onLoadErrorRef = useRef(onLoadError);
+  const localModeNoticeRef = useRef(false);
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -27,39 +27,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
     notifyRef.current = notify;
   }, [notify]);
 
-  useEffect(() => {
-    onLoadErrorRef.current = onLoadError;
-  }, [onLoadError]);
-
   const loadTasks = useCallback(async (nextSpaceKey: string) => {
-    const requestId = ++loadRequestRef.current;
     setLoadingTasks(true);
 
-    try {
-      const res = await fetch(withSpaceKey("/api/tasks", nextSpaceKey), { cache: "no-store" });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load tasks");
-      }
-
-      if (requestId !== loadRequestRef.current) {
-        return;
-      }
-
-      setTasks(Array.isArray(data) ? data : []);
-    } catch (error) {
-      if (requestId !== loadRequestRef.current) {
-        return;
-      }
-
-      console.error("Failed to load tasks:", error);
-      onLoadErrorRef.current?.();
-    } finally {
-      if (requestId === loadRequestRef.current) {
-        setLoadingTasks(false);
-      }
-    }
+    const nextTasks = loadLocalTasks(nextSpaceKey);
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+    setLoadingTasks(false);
   }, []);
 
   useEffect(() => {
@@ -72,61 +46,67 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
     setLoadingTasks(true);
   }, []);
 
+  const persistTasks = useCallback((nextSpaceKey: string, nextTasks: Task[]) => {
+    tasksRef.current = nextTasks;
+    saveLocalTasks(nextSpaceKey, nextTasks);
+    setTasks(nextTasks);
+  }, []);
+
+  const notifyLocalMode = useCallback(() => {
+    if (localModeNoticeRef.current) {
+      return;
+    }
+
+    localModeNoticeRef.current = true;
+    notifyRef.current("Cloud sync is unavailable. Using browser storage on this device.", "error");
+  }, []);
+
   const addTask = useCallback(
     async (text: string, cat: string) => {
       if (!spaceKey) return;
 
-      try {
-        const res = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, cat, spaceKey }),
-        });
-        const task: Task | { error?: string } = await res.json();
+      const cleanedText = text.trim();
+      const cleanedCat = cat.trim();
+      if (!cleanedText || !cleanedCat) return;
 
-        if (!res.ok || !("id" in task)) {
-          throw new Error(("error" in task && task.error) || "Failed to create task");
-        }
-
-        setTasks((prev) => [...prev, task]);
-        notifyRef.current("Task added", "success");
-      } catch (error) {
-        console.error("Failed to add task:", error);
-        notifyRef.current("Failed to add task", "error");
-      }
+      notifyLocalMode();
+      const task = createLocalTask(spaceKey, cleanedText, cleanedCat, tasksRef.current);
+      persistTasks(spaceKey, [...tasksRef.current, task]);
+      notifyRef.current("Task added", "success");
     },
-    [spaceKey],
+    [notifyLocalMode, persistTasks, spaceKey],
   );
 
   const addTasksBulk = useCallback(
     async (parsedTasks: ParsedTask[], meta?: AiResponseMeta) => {
       if (!spaceKey || parsedTasks.length === 0) return;
 
-      try {
-        const res = await fetch("/api/tasks/bulk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ spaceKey, tasks: parsedTasks }),
-        });
-        const data = await res.json();
+      notifyLocalMode();
+      let nextId = tasksRef.current.reduce((max, task) => Math.max(max, task.id), 0) + 1;
+      const createdTasks = parsedTasks
+        .map((task) => ({
+          cat: task.cat.trim(),
+          text: task.text.trim(),
+        }))
+        .filter((task) => task.text && task.cat)
+        .map((task) => ({
+          cat: task.cat,
+          created_at: new Date().toISOString(),
+          done: false,
+          id: nextId++,
+          subtasks: [],
+          text: task.text,
+        }));
 
-        if (!res.ok || !Array.isArray(data)) {
-          throw new Error(data.error || "Failed to create tasks");
-        }
+      persistTasks(spaceKey, [...tasksRef.current, ...createdTasks]);
 
-        setTasks((prev) => [...prev, ...data]);
-
-        if (meta) {
-          notifyRef.current(`${data.length} tasks added via ${describeAiUsage(meta)}`, "ai");
-        } else {
-          notifyRef.current(`${data.length} tasks added by AI`, "ai");
-        }
-      } catch (error) {
-        console.error("Failed to add parsed tasks:", error);
-        notifyRef.current("Failed to add AI tasks", "error");
+      if (meta) {
+        notifyRef.current(`${createdTasks.length} tasks added via ${describeAiUsage(meta)}`, "ai");
+      } else {
+        notifyRef.current(`${createdTasks.length} tasks added by AI`, "ai");
       }
     },
-    [spaceKey],
+    [notifyLocalMode, persistTasks, spaceKey],
   );
 
   const toggleTask = useCallback(
@@ -137,59 +117,38 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
       if (!task) return;
 
       const nextDone = !task.done;
-      setTasks((prev) => prev.map((item) => (item.id === id ? { ...item, done: nextDone } : item)));
-
-      try {
-        const res = await fetch(withSpaceKey(`/api/tasks/${id}`, spaceKey), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ done: nextDone }),
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to update task");
-        }
-
-        notifyRef.current(nextDone ? "Task completed" : "Task reopened");
-      } catch (error) {
-        console.error("Failed to toggle task:", error);
-        setTasks((prev) => prev.map((item) => (item.id === id ? { ...item, done: task.done } : item)));
-        notifyRef.current("Task update failed", "error");
-      }
+      notifyLocalMode();
+      persistTasks(
+        spaceKey,
+        tasksRef.current.map((item) => (item.id === id ? { ...item, done: nextDone } : item)),
+      );
+      notifyRef.current(nextDone ? "Task completed" : "Task reopened");
     },
-    [spaceKey],
+    [notifyLocalMode, persistTasks, spaceKey],
   );
 
   const deleteTask = useCallback(
     async (id: number) => {
       if (!spaceKey) return;
 
-      const previous = tasksRef.current;
-      setTasks((prev) => prev.filter((task) => task.id !== id));
-
-      try {
-        const res = await fetch(withSpaceKey(`/api/tasks/${id}`, spaceKey), { method: "DELETE" });
-
-        if (!res.ok) {
-          throw new Error("Failed to delete task");
-        }
-
-        notifyRef.current("Task deleted");
-      } catch (error) {
-        console.error("Failed to delete task:", error);
-        setTasks(previous);
-        notifyRef.current("Failed to delete task", "error");
-      }
+      notifyLocalMode();
+      persistTasks(
+        spaceKey,
+        tasksRef.current.filter((task) => task.id !== id),
+      );
+      notifyRef.current("Task deleted");
     },
-    [spaceKey],
+    [notifyLocalMode, persistTasks, spaceKey],
   );
 
   const toggleSubtask = useCallback(
     async (taskId: number, subtaskId: number, doneValue: boolean) => {
       if (!spaceKey) return;
 
-      setTasks((prev) =>
-        prev.map((task) =>
+      notifyLocalMode();
+      persistTasks(
+        spaceKey,
+        tasksRef.current.map((task) =>
           task.id === taskId
             ? {
                 ...task,
@@ -198,23 +157,8 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
             : task,
         ),
       );
-
-      try {
-        const res = await fetch(withSpaceKey(`/api/tasks/${taskId}`, spaceKey), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "toggleSubtask", subtaskId, done: doneValue }),
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to update subtask");
-        }
-      } catch (error) {
-        console.error("Failed to toggle subtask:", error);
-        void loadTasks(spaceKey);
-      }
     },
-    [loadTasks, spaceKey],
+    [notifyLocalMode, persistTasks, spaceKey],
   );
 
   const addSubtasksBulk = useCallback(
@@ -223,24 +167,30 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
         return [] as Subtask[];
       }
 
-      const res = await fetch(withSpaceKey(`/api/tasks/${taskId}`, spaceKey), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "addSubtasksBulk", texts }),
-      });
-      const data = await res.json();
-
-      if (!res.ok || !Array.isArray(data)) {
-        throw new Error(data.error || "Failed to add subtasks");
+      notifyLocalMode();
+      const cleanedTexts = texts.map((text) => text.trim()).filter(Boolean);
+      if (cleanedTexts.length === 0) {
+        return [] as Subtask[];
       }
 
-      setTasks((prev) =>
-        prev.map((task) => (task.id === taskId ? { ...task, subtasks: [...(task.subtasks || []), ...data] } : task)),
+      const startId = nextLocalSubtaskId(tasksRef.current);
+      const subtasks = cleanedTexts.map((text, index) => ({
+        done: false,
+        id: startId + index,
+        task_id: taskId,
+        text,
+      }));
+
+      persistTasks(
+        spaceKey,
+        tasksRef.current.map((task) =>
+          task.id === taskId ? { ...task, subtasks: [...(task.subtasks || []), ...subtasks] } : task,
+        ),
       );
 
-      return data as Subtask[];
+      return subtasks;
     },
-    [spaceKey],
+    [notifyLocalMode, persistTasks, spaceKey],
   );
 
   const markAllDone = useCallback(async () => {
@@ -249,30 +199,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
     const pendingTasks = tasksRef.current.filter((task) => !task.done);
     if (pendingTasks.length === 0) return;
 
-    setTasks((prev) => prev.map((task) => ({ ...task, done: true })));
-
-    try {
-      const res = await fetch("/api/tasks/bulk", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spaceKey,
-          ids: pendingTasks.map((task) => task.id),
-          done: true,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to complete tasks");
-      }
-
-      notifyRef.current("All tasks completed");
-    } catch (error) {
-      console.error("Failed to complete all tasks:", error);
-      void loadTasks(spaceKey);
-      notifyRef.current("Bulk update failed", "error");
-    }
-  }, [loadTasks, spaceKey]);
+    notifyLocalMode();
+    persistTasks(
+      spaceKey,
+      tasksRef.current.map((task) => ({ ...task, done: true })),
+    );
+    notifyRef.current("All tasks completed");
+  }, [notifyLocalMode, persistTasks, spaceKey]);
 
   const resetAll = useCallback(async () => {
     if (!spaceKey) return;
@@ -280,30 +213,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
     const doneTasks = tasksRef.current.filter((task) => task.done);
     if (doneTasks.length === 0) return;
 
-    setTasks((prev) => prev.map((task) => ({ ...task, done: false })));
-
-    try {
-      const res = await fetch("/api/tasks/bulk", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spaceKey,
-          ids: doneTasks.map((task) => task.id),
-          done: false,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to reset tasks");
-      }
-
-      notifyRef.current("All tasks reset");
-    } catch (error) {
-      console.error("Failed to reset all tasks:", error);
-      void loadTasks(spaceKey);
-      notifyRef.current("Bulk reset failed", "error");
-    }
-  }, [loadTasks, spaceKey]);
+    notifyLocalMode();
+    persistTasks(
+      spaceKey,
+      tasksRef.current.map((task) => ({ ...task, done: false })),
+    );
+    notifyRef.current("All tasks reset");
+  }, [notifyLocalMode, persistTasks, spaceKey]);
 
   const clearDone = useCallback(async () => {
     if (!spaceKey) return;
@@ -311,29 +227,13 @@ export function useTasks(spaceKey: string | null, options: UseTasksOptions) {
     const doneTasks = tasksRef.current.filter((task) => task.done);
     if (doneTasks.length === 0) return;
 
-    setTasks((prev) => prev.filter((task) => !task.done));
-
-    try {
-      const res = await fetch("/api/tasks/bulk", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spaceKey,
-          ids: doneTasks.map((task) => task.id),
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete tasks");
-      }
-
-      notifyRef.current(`${doneTasks.length} completed tasks cleared`);
-    } catch (error) {
-      console.error("Failed to clear completed tasks:", error);
-      void loadTasks(spaceKey);
-      notifyRef.current("Failed to clear completed tasks", "error");
-    }
-  }, [loadTasks, spaceKey]);
+    notifyLocalMode();
+    persistTasks(
+      spaceKey,
+      tasksRef.current.filter((task) => !task.done),
+    );
+    notifyRef.current(`${doneTasks.length} completed tasks cleared`);
+  }, [notifyLocalMode, persistTasks, spaceKey]);
 
   return {
     addSubtasksBulk,
