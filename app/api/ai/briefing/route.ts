@@ -1,24 +1,29 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from "@/lib/ai-config";
+import { buildFallbackMeta, fallbackBriefing } from "@/lib/ai-fallbacks";
 import { generateGeminiText } from "@/lib/gemini";
 import type { GeminiModelId, Task } from "@/types";
 
 export async function POST(req: Request) {
+  const {
+    tasks,
+    memory,
+    primaryModel,
+  }: {
+    tasks: Task[];
+    memory?: string;
+    primaryModel?: GeminiModelId;
+  } = await req.json();
+
+  if (!tasks?.length) {
+    return NextResponse.json({ briefing: "No tasks yet — add some to get your daily brief!" });
+  }
+
+  const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
+    ? (primaryModel as GeminiModelId)
+    : DEFAULT_GEMINI_MODEL;
+
   try {
-    const {
-      tasks,
-      memory,
-      primaryModel,
-    }: {
-      tasks: Task[];
-      memory?: string;
-      primaryModel?: GeminiModelId;
-    } = await req.json();
-
-    if (!tasks?.length) {
-      return NextResponse.json({ briefing: "No tasks yet — add some to get your daily brief!" });
-    }
-
     const pending = tasks.filter(t => !t.done);
     const done = tasks.filter(t => t.done);
 
@@ -42,10 +47,6 @@ Write a focused daily brief for Edwin. Structure it with:
 Keep the total response under 200 words. Be direct, not generic. Use Edwin's actual task names.
 Format with **bold headers** and bullet points. No emojis except where already in category names.`;
 
-    const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
-      ? (primaryModel as GeminiModelId)
-      : DEFAULT_GEMINI_MODEL;
-
     const { text: briefing, meta } = await generateGeminiText(prompt, {
       primaryModel: preferredModel,
     });
@@ -53,6 +54,9 @@ Format with **bold headers** and bullet points. No emojis except where already i
     return NextResponse.json({ briefing, meta });
   } catch (err) {
     console.error("AI briefing error:", err);
-    return NextResponse.json({ error: "Failed to generate briefing" }, { status: 500 });
+    return NextResponse.json({
+      briefing: fallbackBriefing(tasks, memory),
+      meta: buildFallbackMeta(preferredModel),
+    });
   }
 }

@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_GEMINI_MODEL } from "@/lib/ai-config";
+import { buildFallbackMeta, fallbackParseTasks } from "@/lib/ai-fallbacks";
 import { generateGeminiText } from "@/lib/gemini";
 import { CATEGORY_VALUES } from "@/lib/categories";
 import { GEMINI_MODELS } from "@/lib/ai-config";
 import type { GeminiModelId } from "@/types";
 
 export async function POST(req: Request) {
-  try {
-    const { text, primaryModel } = await req.json();
-    if (!text?.trim()) {
-      return NextResponse.json({ error: "text is required" }, { status: 400 });
-    }
+  const { text, primaryModel } = await req.json();
+  if (!text?.trim()) {
+    return NextResponse.json({ error: "text is required" }, { status: 400 });
+  }
 
+  const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
+    ? (primaryModel as GeminiModelId)
+    : DEFAULT_GEMINI_MODEL;
+
+  try {
     const prompt = `You are a task parser for a personal to-do app.
 The user typed: "${text}"
 
@@ -28,10 +33,6 @@ Rules:
 - Category must be an EXACT match from the list
 - Return at least 1 task`;
 
-    const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
-      ? (primaryModel as GeminiModelId)
-      : DEFAULT_GEMINI_MODEL;
-
     const { text: raw, meta } = await generateGeminiText(prompt, {
       primaryModel: preferredModel,
     });
@@ -46,6 +47,9 @@ Rules:
     return NextResponse.json({ tasks, meta });
   } catch (err) {
     console.error("AI parse error:", err);
-    return NextResponse.json({ error: "AI parsing failed" }, { status: 500 });
+    return NextResponse.json({
+      meta: buildFallbackMeta(preferredModel),
+      tasks: fallbackParseTasks(text),
+    });
   }
 }

@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from "@/lib/ai-config";
+import { buildFallbackMeta, fallbackCategorizeTask } from "@/lib/ai-fallbacks";
 import { CATEGORY_VALUES } from "@/lib/categories";
 import { generateGeminiText } from "@/lib/gemini";
 import type { GeminiModelId } from "@/types";
 
 export async function POST(req: Request) {
-  try {
-    const { text, primaryModel } = await req.json();
-    if (!text?.trim()) {
-      return NextResponse.json({ error: "text is required" }, { status: 400 });
-    }
+  const { text, primaryModel } = await req.json();
+  if (!text?.trim()) {
+    return NextResponse.json({ error: "text is required" }, { status: 400 });
+  }
 
+  const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
+    ? (primaryModel as GeminiModelId)
+    : DEFAULT_GEMINI_MODEL;
+
+  try {
     const prompt = `Classify this task into exactly one category.
 
 Task: "${text}"
@@ -18,10 +23,6 @@ Task: "${text}"
 Categories: ${CATEGORY_VALUES.join(", ")}
 
 Respond with ONLY the exact category value from the list above, nothing else. No punctuation, no explanation.`;
-
-    const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
-      ? (primaryModel as GeminiModelId)
-      : DEFAULT_GEMINI_MODEL;
 
     const { text: cat, meta } = await generateGeminiText(prompt, {
       primaryModel: preferredModel,
@@ -44,6 +45,9 @@ Respond with ONLY the exact category value from the list above, nothing else. No
     return NextResponse.json({ cat: matched, meta });
   } catch (err) {
     console.error("AI categorize error:", err);
-    return NextResponse.json({ error: "Failed to categorize" }, { status: 500 });
+    return NextResponse.json({
+      cat: fallbackCategorizeTask(text),
+      meta: buildFallbackMeta(preferredModel),
+    });
   }
 }

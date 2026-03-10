@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS } from "@/lib/ai-config";
+import { buildFallbackMeta, fallbackBreakdownTask } from "@/lib/ai-fallbacks";
 import { generateGeminiText } from "@/lib/gemini";
 import type { GeminiModelId } from "@/types";
 
 export async function POST(req: Request) {
-  try {
-    const { task, category, primaryModel } = await req.json();
-    if (!task?.trim()) {
-      return NextResponse.json({ error: "task is required" }, { status: 400 });
-    }
+  const { task, category, primaryModel } = await req.json();
+  if (!task?.trim()) {
+    return NextResponse.json({ error: "task is required" }, { status: 400 });
+  }
 
+  const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
+    ? (primaryModel as GeminiModelId)
+    : DEFAULT_GEMINI_MODEL;
+
+  try {
     const prompt = `Break down this task into 3-5 concrete, actionable sub-steps.
 
 Task: "${task}"
@@ -24,10 +29,6 @@ Rules:
 - Keep each step under 10 words
 - 3 to 5 steps maximum`;
 
-    const preferredModel = GEMINI_MODELS.some((model) => model.id === primaryModel)
-      ? (primaryModel as GeminiModelId)
-      : DEFAULT_GEMINI_MODEL;
-
     const { text: raw, meta } = await generateGeminiText(prompt, {
       primaryModel: preferredModel,
     });
@@ -41,12 +42,10 @@ Rules:
 
     return NextResponse.json({ steps, meta });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const isRateLimit = msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota");
     console.error("AI breakdown error:", err);
-    return NextResponse.json(
-      { error: isRateLimit ? "Rate limited — wait 30s and retry" : "Failed to break down task" },
-      { status: isRateLimit ? 429 : 500 }
-    );
+    return NextResponse.json({
+      meta: buildFallbackMeta(preferredModel),
+      steps: fallbackBreakdownTask(task, category),
+    });
   }
 }

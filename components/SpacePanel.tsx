@@ -176,10 +176,12 @@ export default function SpacePanel({
                 >
                   {title.trim() || APP_NAME}
                 </h2>
-                <p className="mt-3 max-w-[34rem] text-sm font-dm leading-relaxed text-muted/82">
-                  {activeTheme.description}
-                </p>
-                <p className="mt-2 text-[12px] font-dm text-accent/78">
+                {activeTheme.description ? (
+                  <p className="mt-3 max-w-[34rem] text-sm font-dm leading-relaxed text-muted/82">
+                    {activeTheme.description}
+                  </p>
+                ) : null}
+                <p className={activeTheme.description ? "mt-2 text-[12px] font-dm text-accent/78" : "mt-3 text-[12px] font-dm text-accent/78"}>
                   {activeTheme.plannerHint}
                 </p>
               </div>

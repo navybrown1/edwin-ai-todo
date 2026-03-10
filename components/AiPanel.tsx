@@ -76,7 +76,7 @@ export default function AiPanel({ tasks, memory, primaryModel, lastAiMeta: _last
       if (error instanceof DOMException && error.name === "AbortError") {
         setBriefing("AI took too long. Try the Quick model or run it again.");
       } else {
-        setBriefing("Failed to connect to AI. Check your API key.");
+        setBriefing(error instanceof Error ? error.message : "AI is unavailable right now. Try again in a bit.");
       }
     } finally {
       clearTimeout(timeout);
