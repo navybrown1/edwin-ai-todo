@@ -8,6 +8,7 @@ import type { PlannerSettings } from "@/types";
 
 interface PlannerCapabilities {
   emailReady: boolean;
+  emailProvider: "none" | "resend" | "gmail" | "google-reconnect";
   googleReady: boolean;
   pushPublicKey: string;
   pushReady: boolean;
@@ -30,6 +31,7 @@ const LEAD_TIME_OPTIONS = [
 
 const EMPTY_CAPABILITIES: PlannerCapabilities = {
   emailReady: false,
+  emailProvider: "none",
   googleReady: false,
   pushPublicKey: "",
   pushReady: false,
@@ -214,6 +216,22 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
     }
     return "Google Calendar sync is wired in code, but this environment still needs Google OAuth keys.";
   }, [capabilities.googleReady, settings]);
+
+  const emailStatus = useMemo(() => {
+    if (capabilities.emailProvider === "gmail" && settings?.googleEmail) {
+      return `Email reminders will send from ${settings.googleEmail} through your connected Google account.`;
+    }
+
+    if (capabilities.emailProvider === "resend") {
+      return "Email reminders are live through the configured mail sender.";
+    }
+
+    if (capabilities.emailProvider === "google-reconnect") {
+      return "Reconnect Google once to grant Gmail send access, or add Resend keys as a fallback sender.";
+    }
+
+    return "Email reminders can use your connected Google account or a configured Resend sender.";
+  }, [capabilities.emailProvider, settings?.googleEmail]);
 
   const saveSettings = useCallback(async () => {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -618,7 +636,10 @@ export default function PlannerControlPanel({ spaceKey }: PlannerControlPanelPro
               : "Planner preferences are currently saving locally on this device until cloud sync returns."}
           </p>
           <p className="mt-2 text-[11px] font-dm leading-relaxed text-muted/62">
-            Missing providers keep their own features disabled. Google needs OAuth keys, email needs Resend keys, and push needs VAPID keys.
+            {emailStatus}
+          </p>
+          <p className="mt-2 text-[11px] font-dm leading-relaxed text-muted/62">
+            Missing providers keep their own features disabled. Google sync needs OAuth keys, push needs VAPID keys, and email can run through either Google or Resend.
           </p>
         </div>
 

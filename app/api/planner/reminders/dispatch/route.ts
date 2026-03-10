@@ -6,7 +6,7 @@ import {
   recordReminderDelivery,
   wasReminderDelivered,
 } from "@/lib/planner-db";
-import { getEmailReminderConfig, getPushConfig, sendEmailReminder, sendPushReminder } from "@/lib/reminders";
+import { getEmailReminderCapability, getPushConfig, sendEmailReminder, sendPushReminder } from "@/lib/reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,6 @@ async function dispatchReminders(req: Request) {
   try {
     const jobs = await getDueReminderJobs();
     const pushConfig = getPushConfig();
-    const emailConfig = getEmailReminderConfig();
     const now = Date.now();
 
     let sent = 0;
@@ -50,12 +49,14 @@ async function dispatchReminders(req: Request) {
       }
 
       const settings = await getPlannerSettings(job.spaceKey);
+      const emailConfig = await getEmailReminderCapability(job.spaceKey);
 
       if (job.emailEnabled && settings.emailAddress && emailConfig.ready) {
         const alreadySent = await wasReminderDelivered(job.eventId, "email", triggerAtIso);
         if (!alreadySent) {
           try {
             await sendEmailReminder(
+              job.spaceKey,
               settings.emailAddress,
               `Upcoming: ${job.text}`,
               `<p><strong>${job.text}</strong> starts at ${job.time ?? "soon"} on ${job.date}.</p>`,

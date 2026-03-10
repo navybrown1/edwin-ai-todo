@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPlannerSettings, listPushSubscriptions } from "@/lib/planner-db";
-import { getEmailReminderConfig, getPushConfig, sendEmailReminder, sendPushReminder } from "@/lib/reminders";
+import { getEmailReminderCapability, getPushConfig, sendEmailReminder, sendPushReminder } from "@/lib/reminders";
 import { sanitizeSpaceKey } from "@/lib/space-utils";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const settings = await getPlannerSettings(spaceKey);
     const subscriptions = await listPushSubscriptions(spaceKey);
     const pushConfig = getPushConfig();
-    const emailConfig = getEmailReminderConfig();
+    const emailConfig = await getEmailReminderCapability(spaceKey);
 
     const results: string[] = [];
 
@@ -33,11 +33,19 @@ export async function POST(req: Request) {
 
     if (settings.emailEnabled && settings.emailAddress && emailConfig.ready) {
       await sendEmailReminder(
+        spaceKey,
         settings.emailAddress,
         "Planner reminders are ready",
         "<p>Your planner email reminders are connected.</p>",
       );
       results.push("email");
+    }
+
+    if (results.length === 0 && settings.emailEnabled && settings.emailAddress && emailConfig.provider === "google-reconnect") {
+      return NextResponse.json(
+        { error: "Reconnect Google once to grant Gmail send access for email reminders." },
+        { status: 400 },
+      );
     }
 
     if (results.length === 0) {

@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { getGoogleCalendarConfig } from "@/lib/google-calendar";
 import { getPlannerSettings, updatePlannerSettings } from "@/lib/planner-db";
-import { getEmailReminderConfig, getPushConfig } from "@/lib/reminders";
+import { getEmailReminderCapability, getPushConfig } from "@/lib/reminders";
 import { sanitizeSpaceKey } from "@/lib/space-utils";
 
 export const dynamic = "force-dynamic";
 
-function capabilities() {
+async function capabilities(spaceKey: string) {
   const google = getGoogleCalendarConfig();
   const push = getPushConfig();
-  const email = getEmailReminderConfig();
+  const email = await getEmailReminderCapability(spaceKey);
 
   return {
     emailReady: email.ready,
+    emailProvider: email.provider,
     googleReady: google.ready,
     pushPublicKey: push.publicKey,
     pushReady: push.ready,
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
     const settings = await getPlannerSettings(spaceKey);
     return NextResponse.json({
       ...settings,
-      capabilities: capabilities(),
+      capabilities: await capabilities(spaceKey),
     });
   } catch (error) {
     console.error("GET /api/planner/settings error:", error);
@@ -60,7 +61,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       ...settings,
-      capabilities: capabilities(),
+      capabilities: await capabilities(spaceKey),
     });
   } catch (error) {
     console.error("PATCH /api/planner/settings error:", error);

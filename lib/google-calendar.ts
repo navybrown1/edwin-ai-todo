@@ -2,7 +2,15 @@ import type { GoogleCalendarConnection, PlannerEventInput } from "@/types";
 
 const GOOGLE_AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email";
+export const GOOGLE_CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+export const GOOGLE_GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+export const GOOGLE_USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
+const GOOGLE_SCOPE = [
+  GOOGLE_USERINFO_EMAIL_SCOPE,
+  GOOGLE_CALENDAR_READONLY_SCOPE,
+  GOOGLE_GMAIL_SEND_SCOPE,
+  "openid",
+].join(" ");
 
 interface TokenPayload {
   access_token: string;
@@ -41,6 +49,11 @@ export function decodeGoogleState(state: string | null) {
   } catch {
     return null;
   }
+}
+
+export function googleScopeIncludes(scope: string | null | undefined, requiredScope: string) {
+  if (!scope) return false;
+  return new Set(scope.split(/\s+/).filter(Boolean)).has(requiredScope);
 }
 
 export function buildGoogleAuthUrl(spaceKey: string) {
