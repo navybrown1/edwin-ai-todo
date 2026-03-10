@@ -190,8 +190,8 @@ export default function Header({ title = APP_NAME, themeMode = "dark" }: HeaderP
   }, []);
 
   return (
-    <header className="mb-10 animate-fadeDown relative overflow-visible">
-      <div className="relative max-w-[56rem]">
+    <header className="relative mb-7 animate-fadeDown overflow-visible">
+      <div className="relative max-w-[54rem]">
         {/* Mode-specific hero SVG */}
         <div className="pointer-events-none absolute inset-0 -top-4 -left-4 -right-4 overflow-visible opacity-80">
           <HeroSvg />
@@ -202,7 +202,7 @@ export default function Header({ title = APP_NAME, themeMode = "dark" }: HeaderP
         <div className="pointer-events-none absolute right-[10%] top-2 h-24 w-24 rounded-full bg-accent2/10 blur-3xl animate-breathe" style={{ animationDelay: "2s" }} aria-hidden />
 
         <h1
-          className="relative font-syne text-[clamp(3.7rem,10vw,6.7rem)] font-extrabold leading-[0.9] tracking-[-0.05em]"
+          className="relative font-syne text-[clamp(3.1rem,8vw,5.6rem)] font-extrabold leading-[0.92] tracking-[-0.05em]"
           style={{
             backgroundImage: meta.gradient,
             backgroundSize: "200% auto",
@@ -214,7 +214,7 @@ export default function Header({ title = APP_NAME, themeMode = "dark" }: HeaderP
         >
           {title}
         </h1>
-        <div className="relative mt-5 flex items-center gap-3 max-w-[33rem]">
+        <div className="relative mt-4 flex max-w-[36rem] flex-wrap items-center gap-3">
           {greeting && (
             <span className="text-[13px] font-dm text-accent/70 tracking-wide animate-fadeUp" style={{ animationDelay: "0.3s" }}>
               {greeting} •

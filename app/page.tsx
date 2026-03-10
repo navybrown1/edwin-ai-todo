@@ -1,16 +1,19 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Header from "@/components/Header";
-import StatsBar from "@/components/StatsBar";
-import ProgressBar from "@/components/ProgressBar";
+import ActivityHub from "@/components/ActivityHub";
 import AddTaskBar from "@/components/AddTaskBar";
-import FilterTabs from "@/components/FilterTabs";
-import CategorySection from "@/components/CategorySection";
 import AiPanel from "@/components/AiPanel";
-import Toast from "@/components/Toast";
+import CategorySection from "@/components/CategorySection";
+import CommandDeck from "@/components/CommandDeck";
+import FilterTabs from "@/components/FilterTabs";
+import Header from "@/components/Header";
+import ModelControlPanel from "@/components/ModelControlPanel";
+import PlannerControlPanel from "@/components/PlannerControlPanel";
+import ProgressBar from "@/components/ProgressBar";
 import SpacePanel from "@/components/SpacePanel";
-import FocusPanel from "@/components/FocusPanel";
+import StatsBar from "@/components/StatsBar";
+import Toast from "@/components/Toast";
 import { APP_NAME, getThemeOption } from "@/lib/ai-config";
 import { useAiActions } from "@/hooks/useAiActions";
 import { useLocalPreferences } from "@/hooks/useLocalPreferences";
@@ -24,6 +27,30 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import type { ThemeMode } from "@/types";
 
 type Filter = "all" | "active" | "done";
+type SurfaceTab = "tasks" | "board" | "calendar" | "ai";
+
+const SURFACE_TABS: Array<{ id: SurfaceTab; label: string; body: string }> = [
+  {
+    id: "tasks",
+    label: "Task Flow",
+    body: "Capture, sort, and move the work.",
+  },
+  {
+    id: "board",
+    label: "Board Studio",
+    body: "Shape the space, memory, and mode.",
+  },
+  {
+    id: "calendar",
+    label: "Calendar",
+    body: "Keep the schedule and reminders close.",
+  },
+  {
+    id: "ai",
+    label: "AI Briefs",
+    body: "Pull a plan from the board when you need it.",
+  },
+];
 
 function ModeEmptyIllustration({ themeMode }: { themeMode: ThemeMode }) {
   if (themeMode === "light") {
@@ -76,6 +103,7 @@ function ModeEmptyIllustration({ themeMode }: { themeMode: ThemeMode }) {
 }
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<SurfaceTab>("tasks");
   const [filter, setFilter] = useState<Filter>("all");
   const reducedMotion = useReducedMotion();
   const { toast, showToast } = useToast();
@@ -83,7 +111,9 @@ export default function Home() {
   const { themeMode, setThemeMode, primaryModel, setPrimaryModel } = useLocalPreferences();
   useUiSounds();
   useModeClickFx(themeMode);
+
   const handleLoadError = useCallback(() => showToast("Failed to load this private list", "error"), [showToast]);
+
   const {
     loadingWorkspace,
     memory,
@@ -95,6 +125,7 @@ export default function Home() {
   } = useWorkspace(spaceKey, {
     onLoadError: handleLoadError,
   });
+
   const {
     addSubtasksBulk,
     addTask,
@@ -112,13 +143,15 @@ export default function Home() {
     notify: showToast,
     onLoadError: handleLoadError,
   });
+
   const { breakingTaskId, handleBreakdown, lastAiMeta, recordAiMeta, setLastAiMeta } = useAiActions(spaceKey, primaryModel, {
     notify: showToast,
     onAddSubtasksBulk: addSubtasksBulk,
   });
-  const themeMeta = useMemo(() => getThemeOption(themeMode), [themeMode]);
 
+  const themeMeta = useMemo(() => getThemeOption(themeMode), [themeMode]);
   const loading = loadingWorkspace || loadingTasks;
+  const activeSpaceKey = spaceKey ?? "";
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -163,12 +196,194 @@ export default function Home() {
     resetWorkspace();
     resetTasks();
     setLastAiMeta(null);
+    setActiveTab("tasks");
     showToast("Started a fresh private list");
   }, [resetTasks, resetWorkspace, setLastAiMeta, showToast, startFreshSpace]);
 
+  const renderTaskFlow = () => (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <div className="space-y-4">
+        <StatsBar total={stats.total} remaining={stats.remaining} done={stats.done} />
+        <ProgressBar pct={stats.pct} />
+
+        <AddTaskBar
+          spaceKey={activeSpaceKey}
+          primaryModel={primaryModel}
+          onAdd={addTask}
+          onAiParse={addTasksBulk}
+          onAiMeta={recordAiMeta}
+        />
+
+        <FilterTabs active={filter} onChange={setFilter} />
+
+        {loading && tasks.length === 0 ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="h-12 rounded-[12px] ai-shimmer" style={{ width: `${85 - index * 5}%` }} />
+            ))}
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="glass rounded-[30px] py-14 text-center flex flex-col items-center gap-4">
+            {filter === "done" ? (
+              <>
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-35 text-accent">
+                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" />
+                  <path d="M20 32L28 40L44 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
+                </svg>
+                <p className="text-muted/70 text-sm font-dm">Nothing completed yet. Knock out a few wins first.</p>
+              </>
+            ) : filter === "active" ? (
+              <>
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-45">
+                  <circle cx="32" cy="32" r="28" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.42)" strokeWidth="1.5" />
+                  <path d="M20 32L28 40L44 24" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {!reducedMotion && <animate attributeName="stroke-dasharray" values="0,30;30,0" dur="0.6s" fill="freeze" />}
+                  </path>
+                </svg>
+                <p className="text-emerald-400/70 text-sm font-dm font-medium">All caught up.</p>
+                <p className="text-muted/55 text-xs font-dm">Every active task in this private list is done.</p>
+              </>
+            ) : (
+              <>
+                <ModeEmptyIllustration themeMode={themeMode} />
+                <p className="text-textPrimary/88 text-base font-syne">{themeMeta.emptyTitle}</p>
+                <p className="max-w-sm text-muted/68 text-sm font-dm leading-relaxed">{themeMeta.emptyBody}</p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {categories.map((category, index) => {
+              const tasksInCategory = filteredTasks.filter((task) => task.cat === category);
+              if (!tasksInCategory.length) return null;
+
+              return (
+                <CategorySection
+                  key={category}
+                  cat={category}
+                  tasks={tasksInCategory}
+                  allTasksInCat={tasks.filter((task) => task.cat === category)}
+                  animDelay={`${index * 0.05}s`}
+                  onToggle={toggleTask}
+                  onDelete={deleteTask}
+                  onSubtaskToggle={toggleSubtask}
+                  onBreakdown={handleBreakdown}
+                  breakingTaskId={breakingTaskId}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {tasks.length > 0 ? (
+          <div className="flex flex-wrap gap-2.5 animate-fadeUp" style={{ animationDelay: "0.3s" }}>
+            <button
+              onClick={markAllDone}
+              className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted hover:text-emerald-400 hover:border-emerald-400/20 transition-all duration-200 hover:-translate-y-[1px]"
+            >
+              Complete All
+            </button>
+            <button
+              onClick={resetAll}
+              className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted hover:text-textPrimary hover:border-white/15 transition-all duration-200 hover:-translate-y-[1px]"
+            >
+              Reset All
+            </button>
+            {stats.done > 0 ? (
+              <button
+                onClick={clearDone}
+                className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted hover:text-[#f87171] hover:border-red-400/25 transition-all duration-200 hover:-translate-y-[1px]"
+              >
+                Clear Completed
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <aside className="space-y-6 xl:sticky xl:top-6">
+        <AiPanel
+          tasks={tasks}
+          memory={memory}
+          primaryModel={primaryModel}
+          lastAiMeta={lastAiMeta}
+          onAiMeta={recordAiMeta}
+        />
+        <ModelControlPanel themeMode={themeMode} primaryModel={primaryModel} onPrimaryModelChange={setPrimaryModel} />
+      </aside>
+    </section>
+  );
+
+  const renderBoardStudio = () => (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <SpacePanel
+        spaceKey={activeSpaceKey}
+        title={title}
+        memory={memory}
+        remainingTasks={stats.remaining}
+        themeMode={themeMode}
+        saveState={saveState}
+        onTitleChange={setTitle}
+        onMemoryChange={setMemory}
+        onThemeChange={setThemeMode}
+        onCopyLink={copyRecoveryLink}
+        onStartFresh={startFreshList}
+      />
+
+      <aside className="space-y-6 xl:sticky xl:top-6">
+        <ModelControlPanel themeMode={themeMode} primaryModel={primaryModel} onPrimaryModelChange={setPrimaryModel} />
+        <div className="glass rounded-[28px] p-5 shadow-card animate-fadeUp" style={{ animationDelay: "0.08s" }}>
+          <p className="text-[11px] font-dm uppercase tracking-[0.16em] text-muted">Board pulse</p>
+          <p className="mt-2 font-syne text-[1.2rem] leading-snug text-textPrimary">{themeMeta.tagline}</p>
+          <p className="mt-3 text-sm font-dm leading-relaxed text-muted/78">
+            Use this space for the board identity, the running memory, and the mode that sets the emotional tone for the day.
+          </p>
+        </div>
+      </aside>
+    </section>
+  );
+
+  const renderCalendarStudio = () => (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <ActivityHub spaceKey={activeSpaceKey} themeMode={themeMode} remainingTasks={stats.remaining} />
+      <aside className="space-y-6 xl:sticky xl:top-6">
+        <PlannerControlPanel spaceKey={activeSpaceKey} />
+      </aside>
+    </section>
+  );
+
+  const renderAiStudio = () => (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <div className="space-y-6">
+        <AiPanel
+          tasks={tasks}
+          memory={memory}
+          primaryModel={primaryModel}
+          lastAiMeta={lastAiMeta}
+          onAiMeta={recordAiMeta}
+        />
+        <div className="glass rounded-[28px] p-5 shadow-card animate-fadeUp" style={{ animationDelay: "0.08s" }}>
+          <p className="text-[11px] font-dm uppercase tracking-[0.16em] text-muted">Board context</p>
+          <p className="mt-2 font-syne text-[1.2rem] leading-snug text-textPrimary">
+            {tasks.length > 0 ? `${tasks.length} board items ready for planning.` : "No board items yet."}
+          </p>
+          <p className="mt-3 text-sm font-dm leading-relaxed text-muted/78">
+            {memory.trim()
+              ? memory
+              : "Drop board notes into Memory when you want the AI brief to carry context across the day."}
+          </p>
+        </div>
+      </div>
+
+      <aside className="space-y-6 xl:sticky xl:top-6">
+        <ModelControlPanel themeMode={themeMode} primaryModel={primaryModel} onPrimaryModelChange={setPrimaryModel} />
+      </aside>
+    </section>
+  );
+
   if (bootingSpace || !spaceKey) {
     return (
-      <main className="relative z-10 max-w-[1220px] mx-auto px-5 py-10 pb-20">
+      <main className="relative z-10 mx-auto max-w-[1320px] px-5 py-10 pb-20">
         <div className="space-y-4">
           <div className="h-24 rounded-[28px] ai-shimmer" />
           <div className="h-72 rounded-[28px] ai-shimmer" />
@@ -180,140 +395,50 @@ export default function Home() {
   }
 
   return (
-    <main className="relative z-10 max-w-[1220px] mx-auto px-5 py-10 pb-20">
+    <main className="relative z-10 mx-auto max-w-[1320px] px-5 py-10 pb-20">
       <div className="blob blob-1" style={{ width: 400, height: 400, top: "-10%", left: "-15%", background: "rgb(var(--blob-a-rgb) / 0.13)" }} />
       <div className="blob blob-2" style={{ width: 350, height: 350, top: "38%", right: "-20%", background: "rgb(var(--blob-b-rgb) / 0.1)" }} />
       <div className="blob blob-3" style={{ width: 300, height: 300, bottom: "5%", left: "8%", background: "rgb(var(--blob-c-rgb) / 0.09)" }} />
 
       <Header title={APP_NAME} themeMode={themeMode} />
 
-      <SpacePanel
-        spaceKey={spaceKey}
-        title={title}
-        memory={memory}
-        remainingTasks={stats.remaining}
+      <section className="sticky top-3 z-20 mb-6 animate-fadeUp" style={{ animationDelay: "0.12s" }}>
+        <div className="glass rounded-[28px] p-3 shadow-card backdrop-blur-xl">
+          <div className="flex flex-wrap gap-2">
+            {SURFACE_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`min-w-[180px] rounded-[20px] border px-4 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+                    isActive
+                      ? "border-accent/30 bg-accent/14 shadow-glowSm"
+                      : "border-transparent bg-surface2/45 hover:border-border hover:bg-surface2/72"
+                  }`}
+                >
+                  <p className={`font-syne text-[1rem] ${isActive ? "text-textPrimary" : "text-muted/88"}`}>{tab.label}</p>
+                  <p className="mt-1 text-[12px] font-dm leading-relaxed text-muted/72">{tab.body}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <CommandDeck
+        spaceKey={activeSpaceKey}
         themeMode={themeMode}
-        primaryModel={primaryModel}
-        saveState={saveState}
-        onTitleChange={setTitle}
-        onMemoryChange={setMemory}
-        onThemeChange={setThemeMode}
-        onPrimaryModelChange={setPrimaryModel}
-        onCopyLink={copyRecoveryLink}
-        onStartFresh={startFreshList}
+        remainingTasks={stats.remaining}
+        onOpenBoard={() => setActiveTab("board")}
+        onOpenCalendar={() => setActiveTab("calendar")}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-        <div className="space-y-4">
-          <StatsBar total={stats.total} remaining={stats.remaining} done={stats.done} />
-          <ProgressBar pct={stats.pct} />
-
-          <AddTaskBar
-            spaceKey={spaceKey}
-            primaryModel={primaryModel}
-            onAdd={addTask}
-            onAiParse={addTasksBulk}
-            onAiMeta={recordAiMeta}
-          />
-
-          <FilterTabs active={filter} onChange={setFilter} />
-
-          {loading && tasks.length === 0 ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, index) => (
-                <div key={index} className="h-12 rounded-[12px] ai-shimmer" style={{ width: `${85 - index * 5}%` }} />
-              ))}
-            </div>
-          ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-14 flex flex-col items-center gap-4">
-              {filter === "done" ? (
-                <>
-                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-35 text-accent">
-                    <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" />
-                    <path d="M20 32L28 40L44 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
-                  </svg>
-                  <p className="text-muted/70 text-sm font-dm">Nothing completed yet. Knock out a few wins first.</p>
-                </>
-              ) : filter === "active" ? (
-                <>
-                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="opacity-45">
-                    <circle cx="32" cy="32" r="28" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.42)" strokeWidth="1.5" />
-                    <path d="M20 32L28 40L44 24" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      {!reducedMotion && <animate attributeName="stroke-dasharray" values="0,30;30,0" dur="0.6s" fill="freeze" />}
-                    </path>
-                  </svg>
-                  <p className="text-emerald-400/70 text-sm font-dm font-medium">All caught up.</p>
-                  <p className="text-muted/55 text-xs font-dm">Every active task in this private list is done.</p>
-                </>
-              ) : (
-                <>
-                  <ModeEmptyIllustration themeMode={themeMode} />
-                  <p className="text-textPrimary/88 text-base font-syne">{themeMeta.emptyTitle}</p>
-                  <p className="max-w-sm text-muted/68 text-sm font-dm leading-relaxed">{themeMeta.emptyBody}</p>
-                </>
-              )}
-            </div>
-          ) : (
-            <div>
-              {categories.map((category, index) => {
-                const tasksInCategory = filteredTasks.filter((task) => task.cat === category);
-                if (!tasksInCategory.length) return null;
-
-                return (
-                  <CategorySection
-                    key={category}
-                    cat={category}
-                    tasks={tasksInCategory}
-                    allTasksInCat={tasks.filter((task) => task.cat === category)}
-                    animDelay={`${index * 0.05}s`}
-                    onToggle={toggleTask}
-                    onDelete={deleteTask}
-                    onSubtaskToggle={toggleSubtask}
-                    onBreakdown={handleBreakdown}
-                    breakingTaskId={breakingTaskId}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          {tasks.length > 0 && (
-            <div className="flex gap-2.5 flex-wrap animate-fadeUp" style={{ animationDelay: "0.3s" }}>
-              <button
-                onClick={markAllDone}
-                className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted hover:text-emerald-400 hover:border-emerald-400/20 transition-all duration-200 hover:-translate-y-[1px]"
-              >
-                Complete All
-              </button>
-              <button
-                onClick={resetAll}
-                className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted hover:text-textPrimary hover:border-white/15 transition-all duration-200 hover:-translate-y-[1px]"
-              >
-                Reset All
-              </button>
-              {stats.done > 0 && (
-                <button
-                  onClick={clearDone}
-                  className="glass-subtle rounded-xl px-4 py-2 text-xs font-dm text-muted hover:text-[#f87171] hover:border-red-400/25 transition-all duration-200 hover:-translate-y-[1px]"
-                >
-                  Clear Completed
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        <aside className="space-y-6 xl:sticky xl:top-6">
-          <FocusPanel spaceKey={spaceKey} />
-          <AiPanel
-            tasks={tasks}
-            memory={memory}
-            primaryModel={primaryModel}
-            lastAiMeta={lastAiMeta}
-            onAiMeta={recordAiMeta}
-          />
-        </aside>
-      </div>
+      {activeTab === "tasks" ? renderTaskFlow() : null}
+      {activeTab === "board" ? renderBoardStudio() : null}
+      {activeTab === "calendar" ? renderCalendarStudio() : null}
+      {activeTab === "ai" ? renderAiStudio() : null}
 
       <Toast show={toast.show} message={toast.message} type={toast.type} />
     </main>

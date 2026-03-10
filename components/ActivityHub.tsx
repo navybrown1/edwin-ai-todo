@@ -1,113 +1,16 @@
 "use client";
 
+import { usePlannerEvents } from "@/hooks/usePlannerEvents";
 import { getThemeOption } from "@/lib/ai-config";
 import { fetchJson, withSpaceKey } from "@/lib/client-utils";
-import { createLocalPlannerEvent, loadLocalPlannerEvents, saveLocalPlannerEvents } from "@/lib/local-store";
+import { createLocalPlannerEvent } from "@/lib/local-store";
+import { buildCalendarDays, EVENT_COLORS, formatEventTime, isSameDay, sortPlannerEvents, startOfDay, toDateKey, toScheduledAt } from "@/lib/planner-calendar";
 import type { PlannerEvent, ThemeMode } from "@/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type CalendarEvent = PlannerEvent;
-
-const EVENT_COLORS = [
-  "#f0c040",
-  "#14b8a6",
-  "#ff5ea8",
-  "#3b82f6",
-  "#ef4444",
-  "#8b5cf6",
-  "#f97316",
-  "#10b981",
-];
-
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function getCalendarStart(month: Date) {
-  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
-  const dayIndex = (firstDay.getDay() + 6) % 7;
-  const start = new Date(firstDay);
-  start.setDate(firstDay.getDate() - dayIndex);
-  return start;
-}
-
-function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function buildCalendarDays(month: Date) {
-  const start = getCalendarStart(month);
-  return Array.from({ length: 42 }, (_, index) => {
-    const next = new Date(start);
-    next.setDate(start.getDate() + index);
-    return next;
-  });
-}
-
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function sortEvents(a: CalendarEvent, b: CalendarEvent) {
-  if (a.time && b.time) return a.time.localeCompare(b.time);
-  if (a.time) return -1;
-  if (b.time) return 1;
-  return a.text.localeCompare(b.text);
-}
-
-function formatEventTime(time?: string) {
-  if (!time) return "Anytime";
-
-  const [hours = "0", minutes = "0"] = time.split(":");
-  const asDate = new Date();
-  asDate.setHours(Number(hours), Number(minutes), 0, 0);
-
-  return asDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function toScheduledAt(date: string, time?: string) {
-  if (!time) return null;
-
-  const [year, month, day] = date.split("-").map(Number);
-  const [hours, minutes] = time.split(":").map(Number);
-  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
-}
-
-function syncLocalEvents(spaceKey: string, events: CalendarEvent[]) {
-  saveLocalPlannerEvents(spaceKey, events);
-  return events;
-}
-
-async function migrateLocalEvents(spaceKey: string, events: CalendarEvent[]) {
-  await fetchJson<CalendarEvent[]>("/api/planner/events", {
-    body: JSON.stringify({
-      events: events.map((event) => ({
-        calendarId: event.calendarId ?? null,
-        color: event.color,
-        date: event.date,
-        externalId: event.externalId ?? null,
-        scheduledAt: event.scheduledAt ?? null,
-        source: event.source,
-        text: event.text,
-        time: event.time,
-      })),
-      spaceKey,
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    },
-    method: "POST",
-  });
-
-  return fetchJson<CalendarEvent[]>(withSpaceKey("/api/planner/events", spaceKey), {
-    cache: "no-store",
-  });
-}
 
 function Chevron({ direction }: { direction: "left" | "right" }) {
   return (
@@ -185,58 +88,16 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
   const [now, setNow] = useState(() => new Date());
   const [monthCursor, setMonthCursor] = useState(() => startOfDay(new Date()));
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEventText, setNewEventText] = useState("");
   const [newEventTime, setNewEventTime] = useState("");
   const [newEventColor, setNewEventColor] = useState(EVENT_COLORS[0]);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [syncMode, setSyncMode] = useState<"cloud" | "local">("cloud");
+  const { events, persistEvents, setStatusMessage, setSyncMode, statusMessage, syncMode } = usePlannerEvents(spaceKey);
   const palette = useMemo(
     () => [activeTheme.accent, ...EVENT_COLORS.filter((color) => color.toLowerCase() !== activeTheme.accent.toLowerCase())],
     [activeTheme.accent],
   );
-
-  const loadEvents = useCallback(async () => {
-    if (!spaceKey) return;
-
-    const localEvents = loadLocalPlannerEvents(spaceKey).sort(sortEvents);
-
-    try {
-      let remoteEvents = await fetchJson<CalendarEvent[]>(withSpaceKey("/api/planner/events", spaceKey), {
-        cache: "no-store",
-      });
-
-      if (remoteEvents.length === 0 && localEvents.length > 0) {
-        remoteEvents = await migrateLocalEvents(spaceKey, localEvents);
-        setStatusMessage("Recovered your saved plans into cloud sync.");
-      } else {
-        setStatusMessage(null);
-      }
-
-      setSyncMode("cloud");
-      setEvents(syncLocalEvents(spaceKey, remoteEvents.sort(sortEvents)));
-    } catch (error) {
-      console.error("Falling back to local planner events:", error);
-      setSyncMode("local");
-      setStatusMessage("Planner sync is offline. Events are saving on this device.");
-      setEvents(syncLocalEvents(spaceKey, localEvents));
-    }
-  }, [spaceKey]);
-
-  useEffect(() => {
-    void loadEvents();
-  }, [loadEvents]);
-
-  useEffect(() => {
-    const handleRefresh = () => {
-      void loadEvents();
-    };
-
-    window.addEventListener("planner-events-refresh", handleRefresh);
-    return () => window.removeEventListener("planner-events-refresh", handleRefresh);
-  }, [loadEvents]);
 
   useEffect(() => {
     if (!showForm && !editingEventId) {
@@ -275,7 +136,7 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
       nextMap.set(event.date, bucket);
     }
     for (const bucket of nextMap.values()) {
-      bucket.sort(sortEvents);
+      bucket.sort(sortPlannerEvents);
     }
     return nextMap;
   }, [events]);
@@ -365,30 +226,20 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
 
         setSyncMode("cloud");
         setStatusMessage(null);
-        setEvents(
-          syncLocalEvents(
-            spaceKey,
-            events.map((event) => (event.id === editingEventId ? updatedEvent : event)).sort(sortEvents),
-          ),
-        );
+        persistEvents(events.map((event) => (event.id === editingEventId ? updatedEvent : event)));
       } catch (error) {
         console.error("Saving planner event locally because cloud sync failed:", error);
         setSyncMode("local");
         setStatusMessage("Planner sync is offline. This edit was saved on this device.");
-        setEvents(
-          syncLocalEvents(
-            spaceKey,
-            events
-              .map((event) =>
-                event.id === editingEventId
-                  ? {
-                      ...event,
-                      ...payload,
-                      updated_at: new Date().toISOString(),
-                    }
-                  : event,
-              )
-              .sort(sortEvents),
+        persistEvents(
+          events.map((event) =>
+            event.id === editingEventId
+              ? {
+                  ...event,
+                  ...payload,
+                  updated_at: new Date().toISOString(),
+                }
+              : event,
           ),
         );
       }
@@ -411,13 +262,13 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
 
       setSyncMode("cloud");
       setStatusMessage(null);
-      setEvents(syncLocalEvents(spaceKey, [...events, nextEvent].sort(sortEvents)));
+      persistEvents([...events, nextEvent]);
     } catch (error) {
       console.error("Saving planner event locally because cloud sync failed:", error);
       const nextEvent = createLocalPlannerEvent(spaceKey, payload);
       setSyncMode("local");
       setStatusMessage("Planner sync is offline. This plan was saved on this device.");
-      setEvents(syncLocalEvents(spaceKey, [...events, nextEvent].sort(sortEvents)));
+      persistEvents([...events, nextEvent]);
     }
 
     resetComposer();
@@ -436,7 +287,7 @@ export default function ActivityHub({ spaceKey, themeMode, remainingTasks }: Act
       setStatusMessage("Planner sync is offline. This deletion only happened on this device.");
     }
 
-    setEvents(syncLocalEvents(spaceKey, events.filter((event) => event.id !== id)));
+    persistEvents(events.filter((event) => event.id !== id));
   };
 
   return (

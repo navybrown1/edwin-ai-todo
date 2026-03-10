@@ -1,0 +1,15 @@
+{
+  "name": "my-day-guide-pro-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone macOS wrapper for My Day Guide Pro",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "package:mac": "electron-packager . \"My Day Guide Pro\" --platform=darwin --arch=arm64 --overwrite --out=dist --app-version=1.0.0 --app-bundle-id=com.edwinbrown.mydayguidepro --icon=assets/icon.icns"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^35.0.2"
+  }
+}

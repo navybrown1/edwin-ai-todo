@@ -5,6 +5,7 @@ import { usePomodoro, type PomodoroMode } from "@/hooks/usePomodoro";
 
 interface FocusPanelProps {
   spaceKey: string;
+  variant?: "compact" | "full";
 }
 
 const MODE_LABELS: Record<PomodoroMode, string> = {
@@ -54,7 +55,7 @@ function ControlIcon({ kind }: { kind: "play" | "pause" | "reset" | "skip" }) {
   );
 }
 
-export default function FocusPanel({ spaceKey }: FocusPanelProps) {
+export default function FocusPanel({ spaceKey, variant = "full" }: FocusPanelProps) {
   const {
     completedFocusRounds,
     isRunning,
@@ -73,31 +74,36 @@ export default function FocusPanel({ spaceKey }: FocusPanelProps) {
     return (totalSeconds - remainingSeconds) / totalSeconds;
   }, [remainingSeconds, totalSeconds]);
 
-  const circumference = 2 * Math.PI * 84;
+  const compact = variant === "compact";
+  const dialRadius = compact ? 66 : 84;
+  const dialSize = compact ? 176 : 208;
+  const viewBoxSize = compact ? 190 : 220;
+  const viewCenter = viewBoxSize / 2;
+  const circumference = 2 * Math.PI * dialRadius;
   const dashOffset = circumference - progress * circumference;
 
   return (
-    <section className="glass rounded-[30px] p-5 sm:p-6 animate-fadeUp">
+    <section className={`glass animate-fadeUp ${compact ? "rounded-[28px] p-5" : "rounded-[30px] p-5 sm:p-6"}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-dm uppercase tracking-[0.16em] text-muted">Focus</p>
-          <p className="mt-2 font-syne text-[1.45rem] leading-none text-textPrimary">{MODE_LABELS[mode]}</p>
+          <p className={`mt-2 font-syne leading-none text-textPrimary ${compact ? "text-[1.25rem]" : "text-[1.45rem]"}`}>{MODE_LABELS[mode]}</p>
         </div>
         <div className="rounded-full border border-border bg-surface2/70 px-3 py-1.5 text-[11px] font-dm uppercase tracking-[0.14em] text-muted">
           Round {completedFocusRounds + 1}
         </div>
       </div>
 
-      <div className="mt-5 flex justify-center">
-        <div className="relative h-[208px] w-[208px]">
-          <svg className="h-full w-full -rotate-90" viewBox="0 0 220 220" fill="none" aria-hidden="true">
-            <circle cx="110" cy="110" r="84" stroke="rgb(var(--border-rgb) / 0.9)" strokeWidth="12" />
+      <div className={`flex justify-center ${compact ? "mt-4" : "mt-5"}`}>
+        <div className="relative" style={{ height: dialSize, width: dialSize }}>
+          <svg className="h-full w-full -rotate-90" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} fill="none" aria-hidden="true">
+            <circle cx={viewCenter} cy={viewCenter} r={dialRadius} stroke="rgb(var(--border-rgb) / 0.9)" strokeWidth={compact ? 10 : 12} />
             <circle
-              cx="110"
-              cy="110"
-              r="84"
+              cx={viewCenter}
+              cy={viewCenter}
+              r={dialRadius}
               stroke="rgb(var(--accent-rgb))"
-              strokeWidth="12"
+              strokeWidth={compact ? 10 : 12}
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={dashOffset}
@@ -106,8 +112,10 @@ export default function FocusPanel({ spaceKey }: FocusPanelProps) {
           </svg>
 
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="font-syne text-[3rem] font-extrabold leading-none text-textPrimary">{formatTime(remainingSeconds)}</span>
-            <div className="mt-4 flex gap-2">
+            <span className={`font-syne font-extrabold leading-none text-textPrimary ${compact ? "text-[2.35rem]" : "text-[3rem]"}`}>
+              {formatTime(remainingSeconds)}
+            </span>
+            <div className={`flex gap-2 ${compact ? "mt-3" : "mt-4"}`}>
               {[0, 1, 2, 3].map((index) => (
                 <span
                   key={index}
@@ -121,45 +129,45 @@ export default function FocusPanel({ spaceKey }: FocusPanelProps) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
+      <div className={`grid grid-cols-3 gap-2 ${compact ? "mt-4" : "mt-5"}`}>
         {(Object.keys(MODE_LABELS) as PomodoroMode[]).map((option) => (
           <button
             key={option}
             onClick={() => setMode(option)}
-            className={`rounded-[16px] px-4 py-2.5 text-xs font-dm uppercase tracking-[0.14em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+            className={`rounded-[16px] font-dm uppercase tracking-[0.14em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
               mode === option
                 ? "bg-accent text-bg shadow-glowSm"
                 : "glass-subtle text-muted hover:text-textPrimary hover:border-accent/35"
-            }`}
+            } ${compact ? "px-3 py-2 text-[11px]" : "px-4 py-2.5 text-xs"}`}
           >
             {MODE_LABELS[option]}
           </button>
         ))}
       </div>
 
-      <div className="mt-4 glass-subtle rounded-[24px] px-5 py-5">
-        <p className="font-syne text-[1.2rem] leading-snug text-textPrimary">{phrase}</p>
+      <div className={`glass-subtle rounded-[24px] ${compact ? "mt-3 px-4 py-4" : "mt-4 px-5 py-5"}`}>
+        <p className={`font-syne leading-snug text-textPrimary ${compact ? "text-[1.05rem]" : "text-[1.2rem]"}`}>{phrase}</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2.5">
+      <div className={`grid grid-cols-3 gap-2.5 ${compact ? "mt-3" : "mt-4"}`}>
         <button
           onClick={toggleRunning}
           aria-label={isRunning ? "Pause timer" : "Start timer"}
-          className="primary-action inline-flex items-center justify-center rounded-2xl px-5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45"
+          className={`primary-action inline-flex items-center justify-center rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45 ${compact ? "px-4 py-2.5" : "px-5 py-3"}`}
         >
           <ControlIcon kind={isRunning ? "pause" : "play"} />
         </button>
         <button
           onClick={reset}
           aria-label="Reset timer"
-          className="secondary-action inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className={`secondary-action inline-flex items-center justify-center rounded-2xl font-syne text-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${compact ? "px-4 py-2.5 text-xs" : "px-4 py-3 text-sm"}`}
         >
           <ControlIcon kind="reset" />
         </button>
         <button
           onClick={skip}
           aria-label="Skip timer"
-          className="secondary-action inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-syne text-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className={`secondary-action inline-flex items-center justify-center rounded-2xl font-syne text-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${compact ? "px-4 py-2.5 text-xs" : "px-4 py-3 text-sm"}`}
         >
           <ControlIcon kind="skip" />
         </button>

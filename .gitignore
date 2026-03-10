@@ -6,6 +6,8 @@
 
 # testing
 /coverage
+/desktop/node_modules/
+/desktop/dist/
 
 # next.js
 /.next/
