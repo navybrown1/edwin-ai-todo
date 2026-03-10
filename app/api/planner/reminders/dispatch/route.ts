@@ -6,29 +6,13 @@ import {
   recordReminderDelivery,
   wasReminderDelivered,
 } from "@/lib/planner-db";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { getEmailReminderCapability, getPushConfig, sendEmailReminder, sendPushReminder } from "@/lib/reminders";
 
 export const dynamic = "force-dynamic";
 
-function isAuthorized(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const url = new URL(req.url);
-  const bearer = req.headers.get("authorization");
-  const userAgent = req.headers.get("user-agent") || "";
-
-  if (userAgent.includes("vercel-cron/1.0")) {
-    return true;
-  }
-
-  if (!secret) {
-    return true;
-  }
-
-  return bearer === `Bearer ${secret}` || url.searchParams.get("secret") === secret;
-}
-
 async function dispatchReminders(req: Request) {
-  if (!isAuthorized(req)) {
+  if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

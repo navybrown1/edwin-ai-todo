@@ -451,6 +451,17 @@ export async function getGoogleConnection(spaceKey: string): Promise<GoogleCalen
   return rows[0] ?? null;
 }
 
+export async function listGoogleConnectionSpaceKeys(): Promise<string[]> {
+  await ensurePlannerSchema();
+  const { rows } = await sql<{ spaceKey: string }>`
+    SELECT space_key AS "spaceKey"
+    FROM google_calendar_connections
+    ORDER BY updated_at ASC, space_key ASC
+  `;
+
+  return rows.map((row) => row.spaceKey);
+}
+
 export async function clearGoogleConnection(spaceKey: string) {
   await ensurePlannerSchema();
   await sql`DELETE FROM google_calendar_connections WHERE space_key = ${spaceKey}`;
